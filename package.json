@@ -11,6 +11,8 @@
     "check:powershell": "pwsh -NoProfile -File scripts/check-powershell.ps1",
     "docs:features": "ts-node src/tools/generateFeatureDashboard.ts",
     "check": "npm run typecheck && npm test && npm run test:web-proto && npm run check:powershell && npm run docs:features",
+    "doctor": "pwsh -NoProfile -File scripts/check-prerequisites.ps1",
+    "doctor:scripts": "pwsh -NoProfile -File scripts/check-prerequisites.ps1 -GeneratedScripts",
     "translate": "ts-node src/index.ts",
     "web": "ts-node src/web/server.ts",
     "web:proto": "ts-node src/web-proto/server.ts"
@@ -33,11 +35,11 @@
     "url": "https://github.com/raedrahman43/policy-translator/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "type": "commonjs",
   "dependencies": {
-    "@types/node": "^25.9.1",
+    "@types/node": "^26.1.1",
     "express": "^5.2.1",
     "jszip": "^3.10.1",
     "ts-node": "^10.9.2",

@@ -12,12 +12,15 @@ Install and start the guided experience:
 
 ```powershell
 npm ci
+npm run doctor
 npm run web:proto
 ```
 
 Open <http://localhost:4001>.
 
 The service is local-only. Keep the terminal open while using the browser.
+See [docs/PREREQUISITES.md](docs/PREREQUISITES.md) for the complete environment,
+role, provider, and tenant checklist.
 
 ## 2. Obtain Policy Analyzer input
 

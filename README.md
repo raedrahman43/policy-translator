@@ -23,15 +23,19 @@ same Analyzer input produces the same migration package.
 
 Prerequisites:
 
-- Node.js 18 or later;
+- Node.js 22 or later;
 - npm;
 - PowerShell 7 and the Microsoft Graph PowerShell module if you plan to run the
   generated scripts.
+
+See [docs/PREREQUISITES.md](docs/PREREQUISITES.md) for Analyzer access, target-tenant
+roles, and feature-specific requirements.
 
 ```powershell
 git clone https://github.com/raedrahman43/policy-translator.git
 Set-Location policy-translator
 npm ci
+npm run doctor
 npm run web:proto
 ```
 
@@ -144,6 +148,7 @@ See:
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [docs/ADDING-A-FEATURE.md](docs/ADDING-A-FEATURE.md)
+- [docs/PREREQUISITES.md](docs/PREREQUISITES.md)
 - [docs/TESTING.md](docs/TESTING.md)
 - [SECURITY.md](SECURITY.md)
 - [SUPPORT.md](SUPPORT.md)

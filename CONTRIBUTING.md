@@ -19,6 +19,7 @@ the repository later moves to an organization with a formal CLA process.
 
 ```powershell
 npm ci
+npm run doctor
 npm run typecheck
 npm test
 npm run test:web-proto

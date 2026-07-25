@@ -14,10 +14,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Collect aggregate GitHub metrics
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.METRICS_TOKEN || github.token }}
           script: |
@@ -92,7 +92,7 @@ jobs:
               .write();
 
       - name: Upload metrics snapshot
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: community-metrics-${{ github.run_number }}
           path: community-metrics.json
