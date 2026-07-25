@@ -24,6 +24,9 @@ repository/community metrics such as stars, forks, contributors, views, clones, 
 pull requests, and release downloads. It does not receive Analyzer JSON, tenant IDs,
 feature selections, credentials, or user identity data from the application.
 
+Traffic metrics require an optional repository secret named `METRICS_TOKEN`. The token
+is used only inside GitHub Actions and must be scoped to this repository.
+
 Any future runtime telemetry proposal must be:
 
 - explicitly opt-in;

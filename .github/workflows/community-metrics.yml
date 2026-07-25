@@ -6,8 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  # GitHub's traffic endpoints require repository push-level access.
-  contents: write
+  contents: read
 
 jobs:
   snapshot:
@@ -20,6 +19,7 @@ jobs:
       - name: Collect aggregate GitHub metrics
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.METRICS_TOKEN || github.token }}
           script: |
             const fs = require("fs");
             const owner = context.repo.owner;
@@ -85,6 +85,9 @@ jobs:
                 ["14-day unique cloners", String(snapshot.traffic.clones.uniques ?? "unavailable")],
                 ["Community health", `${snapshot.communityHealth ?? "unavailable"}%`],
               ])
+              .addRaw(snapshot.traffic.views.unavailable
+                ? "\nTraffic endpoints are unavailable to the default Actions token. Add a repository-scoped `METRICS_TOKEN` secret from an account with push access to preserve views/clones/referrers.\n"
+                : "\nTraffic endpoints were collected successfully.\n")
               .addRaw("\nOnly aggregate GitHub repository metrics are collected. Policy Translator does not send runtime product telemetry.\n")
               .write();
 

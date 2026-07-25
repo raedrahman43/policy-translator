@@ -32,6 +32,20 @@ GitHub only exposes traffic history for the previous 14 days. Daily snapshots pr
 lightweight historical record without adding telemetry to the product or daily bot
 commits to `main`.
 
+## Enable views, clones, and referrers
+
+GitHub's default Actions token cannot read repository traffic endpoints. To include
+traffic in snapshots:
+
+1. Create a token from an account with push access, scoped only to this repository.
+2. Store it as the Actions secret `METRICS_TOKEN`.
+3. Run **Community metrics snapshot** manually once.
+4. Confirm `traffic.views`, `traffic.clones`, `referrers`, and `popularPaths` are no
+   longer marked unavailable in the artifact.
+
+Do not commit the token or place it in workflow YAML. Rotate it if repository ownership
+changes.
+
 ## Limits
 
 - Clones do not prove successful product use.

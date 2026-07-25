@@ -8,6 +8,9 @@ Use GitHub private vulnerability reporting:
 
 <https://github.com/raedrahman43/policy-translator/security/advisories/new>
 
+This link is intended for the public repository. During private staging, invited
+collaborators should contact the repository owner through an existing private channel.
+
 Include the affected commit, reproduction steps, impact, and any proof of concept. Do
 not include real customer policy data or production credentials.
 

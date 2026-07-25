@@ -31,6 +31,11 @@ The default branch should require:
 - CODEOWNER review for security-sensitive areas;
 - no force pushes or branch deletion.
 
+GitHub Free does not provide branch protection or CodeQL for a private personal
+repository. These controls must be activated before public release (or after upgrading
+the private repository plan). Until then, maintainers use pull requests and CI by
+convention.
+
 ## Ownership transition
 
 If the repository transfers to an approved organization, Git history and contributor
