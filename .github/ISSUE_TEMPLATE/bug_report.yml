@@ -1,0 +1,44 @@
+name: Bug report
+description: Report incorrect translation, generated scripts, or port-4001 behavior.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never include tenant IDs, secrets, access tokens, or customer policy exports. Replace sensitive values with synthetic placeholders.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the observed result and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: input-shape
+    attributes:
+      label: Sanitized Analyzer feature shape
+      description: Include only the minimum synthetic feature objects needed to reproduce the issue.
+      render: json
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: dropdown
+    id: path
+    attributes:
+      label: Affected path
+      options:
+        - Port 4001 live/simulated apply
+        - Generated PowerShell package
+        - Port 4000 script generator
+        - CLI translator
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or release

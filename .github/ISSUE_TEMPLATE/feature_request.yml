@@ -1,0 +1,43 @@
+name: Feature proposal
+description: Propose support for another Policy Analyzer feature.
+title: "[Feature]: "
+labels: ["enhancement", "needs-research"]
+body:
+  - type: input
+    id: feature-key
+    attributes:
+      label: Policy Analyzer feature key
+      placeholder: signIn_idp_example
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Source B2C behavior
+      description: Explain what the source policy does without including customer data.
+    validations:
+      required: true
+  - type: textarea
+    id: external-id
+    attributes:
+      label: Proposed External ID equivalent
+    validations:
+      required: true
+  - type: input
+    id: docs
+    attributes:
+      label: Official documentation
+      description: Link to current Microsoft Learn / Microsoft Graph documentation.
+    validations:
+      required: true
+  - type: dropdown
+    id: path
+    attributes:
+      label: Expected migration path
+      options:
+        - Automated script and live Graph apply
+        - Partial automation with follow-up
+        - Guided manual setup
+        - No direct equivalent
+    validations:
+      required: true

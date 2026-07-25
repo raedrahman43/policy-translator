@@ -1,0 +1,194 @@
+{
+  "policyName": "B2C_1A_ContosoRetail_SignUpSignIn",
+  "features": [
+    {
+      "name": "signUp_auth_emailPassword",
+      "description": "Email and password sign-up",
+      "reason": "Sign-up self-asserted technical profile with a local email/password account detected",
+      "recommendation": "Create a native-auth app registration and an email/password sign-up user flow in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_auth_emailPassword",
+      "description": "Email and password sign-in",
+      "reason": "Local account sign-in technical profile detected",
+      "recommendation": "Enable local account sign-in on the External ID user flow.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_idp_google",
+      "description": "Google social sign-in",
+      "reason": "Identity provider detected: Google (OAuth2 claims exchange)",
+      "recommendation": "Register Google as a social identity provider and attach it to the user flow.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signUp_idp_google",
+      "description": "Google social sign-up",
+      "reason": "Google claims exchange present in the sign-up journey",
+      "recommendation": "The same Google provider covers sign-up and sign-in on the user flow.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_idp_facebook",
+      "description": "Facebook social sign-in",
+      "reason": "Identity provider detected: Facebook (OAuth2 claims exchange)",
+      "recommendation": "Register Facebook as a social identity provider and attach it to the user flow.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signUp_idp_facebook",
+      "description": "Facebook social sign-up",
+      "reason": "Facebook claims exchange present in the sign-up journey",
+      "recommendation": "The same Facebook provider covers sign-up and sign-in on the user flow.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_otp_email",
+      "description": "MFA via email one-time passcode",
+      "reason": "Email OTP technical profile detected in the sign-in journey",
+      "recommendation": "Use the built-in email OTP multifactor method in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signUp_otp_email",
+      "description": "Email verification via one-time passcode at sign-up",
+      "reason": "Email verification (OTP) self-asserted profile detected in the sign-up journey",
+      "recommendation": "Email verification is built into the External ID sign-up user flow.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signUp_attributes_standard",
+      "description": "Standard attribute collection at sign-up",
+      "reason": "Sign-up self-asserted profile collecting standard attributes (displayName, givenName, surname, email)",
+      "recommendation": "Standard attributes are supported directly in External ID user flows.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signUp_attributes_custom",
+      "description": "Custom attribute collection at sign-up",
+      "reason": "Extension attributes detected in the claims schema (extension_loyaltyId, extension_marketingOptIn)",
+      "recommendation": "Create the custom user attributes in the directory and collect them on the user flow.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_claimsMapping",
+      "description": "Claims partner mapping",
+      "reason": "PartnerClaimType mappings detected across technical profiles",
+      "recommendation": "Use a claims mapping policy in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_refreshToken",
+      "description": "Refresh token support",
+      "reason": "JWT issuer technical profile detected. Refresh token capability is available.",
+      "recommendation": "Refresh tokens are supported in External ID by default.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_ux_localization",
+      "description": "Multi-language localization",
+      "reason": "Localization content definitions detected",
+      "recommendation": "Localization is supported in External ID user flows.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_security_preventDisabledSocialLogon",
+      "description": "Prevent disabled accounts from signing in",
+      "reason": "accountEnabled claim check detected in the sign-in orchestration",
+      "recommendation": "External ID natively blocks disabled accounts from signing in.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_infra_orchestrationLinear",
+      "description": "Linear user journey flow",
+      "reason": "2 linear user journeys detected",
+      "recommendation": "User flows in External ID cover linear journeys.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_ux_tenantBranding",
+      "description": "Tenant branding",
+      "reason": "ContentDefinition entries with DataUri detected. Built-in B2C branding is in use.",
+      "recommendation": "Company branding is supported in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_ux_advancedUiCustomization",
+      "description": "Custom HTML and CSS page templates",
+      "reason": "8 content definitions with custom LoadUri templates detected",
+      "recommendation": "External ID uses company branding plus CSS. Fully custom HTML needs custom auth extensions.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "global_infra_orchestrationBranching",
+      "description": "Journey branching via preconditions",
+      "reason": "User journey steps with preconditions detected",
+      "recommendation": "External ID flows are linear. Complex branching needs custom auth extensions.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "signIn_hrd_defaultIdp",
+      "description": "Home realm discovery with a default identity provider",
+      "reason": "Default IdP selection detected in the sign-in orchestration",
+      "recommendation": "Default IdP selection needs custom auth extensions in External ID.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "profileEdit_attributesViaUi",
+      "description": "Profile edit via self-asserted UI",
+      "reason": "Profile edit journey with self-asserted attribute collection detected",
+      "recommendation": "Profile editing needs custom auth extensions in External ID.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "passwordReset_security_passwordComplexity",
+      "description": "Password complexity rules",
+      "reason": "Password predicate validation detected in the claims schema",
+      "recommendation": "Configure password policies in External ID.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "global_token_directoryWrite",
+      "description": "Claims persisted to the directory",
+      "reason": "Extension claims persisted to the directory detected",
+      "recommendation": "Use Microsoft Graph or a custom auth extension.",
+      "externalIdAvailability": "DifferentApproach"
+    }
+  ],
+  "migrationSummary": {
+    "readinessScore": "High",
+    "totalFeaturesDetected": 22,
+    "availableInExternalId": 16,
+    "onRoadmap": 0,
+    "needsExtensions": 6,
+    "migrationBlockers": [],
+    "migrationWarnings": [
+      "global_ux_advancedUiCustomization needs custom extensions",
+      "global_infra_orchestrationBranching needs custom extensions",
+      "signIn_hrd_defaultIdp needs custom extensions",
+      "profileEdit_attributesViaUi needs custom extensions",
+      "passwordReset_security_passwordComplexity needs custom extensions",
+      "global_token_directoryWrite requires a different approach"
+    ],
+    "quickWins": [
+      "signUp_auth_emailPassword",
+      "signIn_auth_emailPassword",
+      "signIn_idp_google",
+      "signUp_idp_google",
+      "signIn_idp_facebook",
+      "signUp_idp_facebook",
+      "signIn_otp_email",
+      "signUp_otp_email",
+      "signUp_attributes_standard",
+      "signUp_attributes_custom",
+      "global_token_claimsMapping",
+      "global_token_refreshToken",
+      "global_ux_localization",
+      "signIn_security_preventDisabledSocialLogon",
+      "global_infra_orchestrationLinear",
+      "global_ux_tenantBranding"
+    ],
+    "overallRecommendation": "High readiness. 16 of 22 detected features are available in External ID today, collapsing into a small set of ordered PowerShell scripts. The remaining 6 are itemized in the gap report with recommendations."
+  }
+}

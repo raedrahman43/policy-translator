@@ -1,0 +1,215 @@
+{
+  "policyName": "B2C_1A_EnterpriseSignUpSignIn",
+  "features": [
+    {
+      "name": "signUp_auth_emailPassword",
+      "description": "Email and password sign-up with custom attributes (givenName, surname, city, jobTitle, companyName)",
+      "reason": "Self-asserted sign-up technical profile detected with 6 output claims: email, displayName, givenName, surname, city, jobTitle, companyName",
+      "recommendation": "Supported in External ID. Migration path is straightforward.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_auth_emailPassword",
+      "description": "Email and password sign-in",
+      "reason": "Self-asserted sign-in technical profile detected",
+      "recommendation": "Supported in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_idp_google",
+      "description": "Google social login",
+      "reason": "Identity provider detected: Google (OAuth2) with scopes openid, profile, email",
+      "recommendation": "Configure Google as a social IdP in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_idp_facebook",
+      "description": "Facebook social login",
+      "reason": "Identity provider detected: Facebook (OAuth2) with scopes public_profile, email",
+      "recommendation": "Configure Facebook as a social IdP in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_idp_partnerIdp",
+      "description": "Contoso Partner federation (enterprise SSO)",
+      "reason": "Identity provider detected: Contoso Partner IdP (OpenIdConnect) with metadata at https://login.contoso.com/.well-known/openid-configuration",
+      "recommendation": "Configure as generic OIDC provider in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_otp_email",
+      "description": "Email one-time passcode for MFA verification",
+      "reason": "Email OTP technical profile detected for second-factor authentication",
+      "recommendation": "Use built-in email OTP in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_otp_email",
+      "description": "Email OTP for passwordless sign-in option",
+      "reason": "Email OTP verification detected (Verified.Email, EnforceEmailVerification, or email OTP TPs)",
+      "recommendation": "Email OTP is supported in External ID for verification and passwordless flows.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_claimsMapping",
+      "description": "Claims partner mapping (displayName, email, givenName, surname, city, jobTitle, companyName, loyaltyTier, department)",
+      "reason": "PartnerClaimType mappings detected in 9 technical profiles: displayname→name, mail→email, surname→family_name, givenname→given_name, city→city, jobTitle→jobTitle, companyName→company, extension_loyaltyTier→loyalty_tier, department→dept",
+      "recommendation": "Use claims mapping policy or custom auth extensions.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_externalClaims",
+      "description": "Custom token claims (loyaltyTier, department, roles)",
+      "reason": "Custom or extension claims in RelyingParty output: extension_loyaltyTier, department, appRoles",
+      "recommendation": "Use claims mapping or custom claims provider.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_claimsTransformation",
+      "description": "String claims transformations (FormatStringClaim on displayName)",
+      "reason": "String transformation methods detected (FormatStringClaim, StringReplace)",
+      "recommendation": "Logic moves from XML to Azure Function via custom auth extensions.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_claimsTransformation",
+      "description": "Collection transformations (AddItemToStringCollection for roles)",
+      "reason": "Collection transformation methods detected (AddItemToStringCollection, GetMappedValueFromLocalizedCollection)",
+      "recommendation": "Implement in custom auth extensions.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "passwordReset_security_passwordComplexity",
+      "description": "Password complexity rules (min 8 chars, 3-of-4 complexity)",
+      "reason": "Password predicate validation detected in claims schema: minLength=8, requireUppercase, requireLowercase, requireDigit, requireSpecial",
+      "recommendation": "Configure password policies in External ID.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "global_ux_localization",
+      "description": "Multi-language localization (en, es, fr, de, ja, zh)",
+      "reason": "Localization content definitions detected for 6 languages",
+      "recommendation": "Supported in External ID user flows.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_ux_tenantBranding",
+      "description": "Tenant branding via content definitions",
+      "reason": "ContentDefinition(s) with DataUri detected — B2C built-in branding system is in use",
+      "recommendation": "Company branding is supported in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_ux_advancedUiCustomization",
+      "description": "Custom HTML/CSS page templates (12 pages)",
+      "reason": "12 content definition(s) detected with custom HTML templates",
+      "recommendation": "External ID uses company branding + CSS, less flexible than B2C custom UI.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "global_infra_orchestrationLinear",
+      "description": "Linear user journey flow",
+      "reason": "3 user journey(s) detected (SignUpSignIn, PasswordReset, ProfileEdit)",
+      "recommendation": "User flows in External ID. Simpler model.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_infra_orchestrationBranching",
+      "description": "Journey branching (preconditions for MFA, age verification, geo-fencing)",
+      "reason": "User journey steps with 8 preconditions detected across 3 journeys",
+      "recommendation": "External ID flows are linear. Complex branching needs custom auth extensions.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "global_infra_subJourneys",
+      "description": "Sub-journey orchestration (MFA sub-journey, age-gate sub-journey)",
+      "reason": "2 sub-journey(s) detected",
+      "recommendation": "Not available natively. Redesign with custom auth extensions.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "global_infra_validationChains",
+      "description": "Validation chains (email verify → profile complete → terms acceptance)",
+      "reason": "SelfAsserted technical profiles with 3 validation chains detected",
+      "recommendation": "Use custom auth extensions.",
+      "externalIdAvailability": "Partial"
+    },
+    {
+      "name": "global_token_lifetimeManagement",
+      "description": "Token lifetime configuration (access=1h, refresh=14d, session=24h)",
+      "reason": "Relying party configuration detected with custom token lifetimes",
+      "recommendation": "Configure token lifetime policies in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_session_lifecycleManagement",
+      "description": "SSO configuration (KMSI enabled, 30-day persistent session)",
+      "reason": "SSO / session management configuration detected with KeepAliveInDays=30",
+      "recommendation": "Configure SSO settings in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_refreshToken",
+      "description": "Refresh token support (14-day sliding window)",
+      "reason": "JWT Issuer technical profile detected with refresh token configuration",
+      "recommendation": "Refresh tokens are supported in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_directoryWrite",
+      "description": "Claims persisted to directory (extension_loyaltyTier, extension_lastLoginDate)",
+      "reason": "Extension claims persisted to directory detected via AAD-UserWriteUsingAlternativeSecurityId",
+      "recommendation": "Use Microsoft Graph or custom auth extension.",
+      "externalIdAvailability": "DifferentApproach"
+    },
+    {
+      "name": "global_token_directoryRead",
+      "description": "Claims read from directory (extension_loyaltyTier, extension_lastLoginDate, department)",
+      "reason": "Directory read technical profile detected (AAD-UserReadUsingObjectId) with 3 extension attributes",
+      "recommendation": "Use Microsoft Graph in custom auth extension.",
+      "externalIdAvailability": "DifferentApproach"
+    },
+    {
+      "name": "global_ux_displayControls",
+      "description": "Display controls (email verification, phone verification UI)",
+      "reason": "2 display controls detected in technical profiles",
+      "recommendation": "Use built-in verification flows in External ID.",
+      "externalIdAvailability": "DifferentApproach"
+    }
+  ],
+  "migrationSummary": {
+    "readinessScore": "Medium",
+    "totalFeaturesDetected": 25,
+    "availableInExternalId": 16,
+    "onRoadmap": 0,
+    "needsExtensions": 4,
+    "migrationBlockers": [],
+    "migrationWarnings": [
+      "global_ux_advancedUiCustomization — 12 custom HTML pages need company branding + CSS migration",
+      "global_infra_orchestrationBranching — 8 preconditions across 3 journeys need custom auth extensions",
+      "global_infra_subJourneys — 2 sub-journeys need redesign with custom auth extensions",
+      "global_infra_validationChains — 3 validation chains are partially supported",
+      "global_token_directoryWrite — extension attributes need Graph API or custom auth extension",
+      "global_token_directoryRead — directory reads need Graph API or custom auth extension",
+      "global_ux_displayControls — custom verification UI needs built-in flows",
+      "passwordReset_security_passwordComplexity — password rules need tenant-level configuration"
+    ],
+    "quickWins": [
+      "signUp_auth_emailPassword",
+      "signIn_auth_emailPassword",
+      "signIn_idp_google",
+      "signIn_idp_facebook",
+      "signIn_idp_partnerIdp",
+      "signIn_otp_email",
+      "global_token_claimsMapping",
+      "global_token_externalClaims",
+      "global_ux_localization",
+      "global_ux_tenantBranding",
+      "global_infra_orchestrationLinear",
+      "global_token_lifetimeManagement",
+      "signIn_session_lifecycleManagement",
+      "global_token_refreshToken"
+    ],
+    "overallRecommendation": "This policy has moderate complexity. 16 of 25 features are directly available, but enterprise features like custom UI, branching logic, and directory extensions require custom auth extensions. Recommend phased migration: core auth first, then extensions."
+  }
+}

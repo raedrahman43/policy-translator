@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Deterministic translator regression
+        run: npm test
+
+      - name: Port 4001 backend regression
+        run: npm run test:web-proto
+
+      - name: Parse PowerShell templates
+        shell: pwsh
+        run: ./scripts/check-powershell.ps1
+
+      - name: Check browser JavaScript syntax
+        run: node --check src/web-proto/public/app.js
+
+      - name: Regenerate feature dashboard
+        run: npm run docs:features
+
+      - name: Verify generated dashboard is committed
+        run: git diff --exit-code -- docs/FEATURE-MATRIX.md docs/feature-coverage.json
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high

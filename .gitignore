@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+coverage/
+test-results/
+*.log
+npm-debug.log*
+
+# Generated deployment packages (contain real tenant/app IDs, not source)
+output/
+deploy-phase15/
+deploy-*/
+manual-tests/
+
+# Runtime context files written by the deployment scripts (tenant / app / SP IDs)
+**/.last-*.json
+
+# Secrets and keys: never commit
+*.p8
+AuthKey*.p8
+.env
+.env.*
+*.local
+*.zip
+*.pem
+*.key
+
+# Temp probes
+src/tmp-*.ts
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.copilot/
+
+# Scratch / e2e dirs (contain real tenant/app IDs, not source)
+e2e-test/
+
+# Real customer data — MUST NOT be published
+real-policy-input.json
+real-*.json
+
+# Internal-only docs (not for the public open-source repo)
+DEMO-VIDEO-SCRIPT.md
+SCENARIO-TRACKER.md
+CUSTOMER-MEETING-CHEATSHEET.md
+CUSTOMER-MEETING-CHEATSHEET.docx
+MEETING-PRE-READ.md
+MEETING-PRE-READ.docx
+Policy-Translator-Feature-List.docx
+ARCHITECTURE.docx
+AddingANewUX.md
+BLOG-POST.md
+CODEX-FIX-PROMPT.md
+*.docx
+~$*.docx
+
+# Local/private publication staging
+private/
+community-metrics/

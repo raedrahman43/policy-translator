@@ -1,0 +1,32 @@
+{
+  "policyName": "B2C_1A_signup_signin_google",
+  "features": [
+    {
+      "name": "signUp_auth_emailPassword",
+      "description": "Local account sign-up with email and password",
+      "reason": "LocalAccountSignUpWithLogonEmail self-asserted technical profile detected in TrustFrameworkBase",
+      "recommendation": "Supported natively in External ID via the email + password user flow.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_auth_emailPassword",
+      "description": "Local account sign-in with email and password",
+      "reason": "SelfAsserted-LocalAccountSignin-Email technical profile detected",
+      "recommendation": "Supported natively in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_idp_google",
+      "description": "Google social identity provider sign-in",
+      "reason": "Google-OAuth2 claims provider detected in TrustFrameworkExtensions ClaimsProviders",
+      "recommendation": "Supported in External ID as a built-in social IdP. You supply Google OAuth client credentials.",
+      "externalIdAvailability": "Available"
+    }
+  ],
+  "summary": {
+    "totalFeatures": 3,
+    "available": 3,
+    "needsExtensions": 0,
+    "unsupported": 0
+  }
+}

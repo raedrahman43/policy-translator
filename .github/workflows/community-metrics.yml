@@ -1,0 +1,96 @@
+name: Community metrics snapshot
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  # GitHub's traffic endpoints require repository push-level access.
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect aggregate GitHub metrics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const safe = async (route, parameters = {}, includeRepository = true) => {
+              try {
+                const response = await github.request(
+                  route,
+                  includeRepository ? { owner, repo, ...parameters } : parameters
+                );
+                return response.data;
+              } catch (error) {
+                return { unavailable: true, status: error.status || null, message: error.message };
+              }
+            };
+
+            const repository = await safe("GET /repos/{owner}/{repo}");
+            const views = await safe("GET /repos/{owner}/{repo}/traffic/views", { per: "day" });
+            const clones = await safe("GET /repos/{owner}/{repo}/traffic/clones", { per: "day" });
+            const referrers = await safe("GET /repos/{owner}/{repo}/traffic/popular/referrers");
+            const popularPaths = await safe("GET /repos/{owner}/{repo}/traffic/popular/paths");
+            const community = await safe("GET /repos/{owner}/{repo}/community/profile");
+            const issueSearch = await safe("GET /search/issues", { q: `repo:${owner}/${repo} is:issue` }, false);
+            const pullSearch = await safe("GET /search/issues", { q: `repo:${owner}/${repo} is:pr` }, false);
+            const contributors = await safe("GET /repos/{owner}/{repo}/contributors", { per_page: 100, anon: "true" });
+            const releases = await safe("GET /repos/{owner}/{repo}/releases", { per_page: 100 });
+            const releaseDownloads = Array.isArray(releases)
+              ? releases.reduce((total, release) =>
+                  total + (release.assets || []).reduce((sum, asset) => sum + (asset.download_count || 0), 0), 0)
+              : null;
+
+            const snapshot = {
+              capturedAt: new Date().toISOString(),
+              repository: {
+                stars: repository.stargazers_count,
+                forks: repository.forks_count,
+                watchers: repository.subscribers_count,
+                openIssuesAndPulls: repository.open_issues_count,
+              },
+              traffic: { views, clones, referrers, popularPaths },
+              collaboration: {
+                issues: issueSearch.total_count,
+                pullRequests: pullSearch.total_count,
+                contributors: Array.isArray(contributors) ? contributors.length : contributors,
+                releaseDownloads,
+              },
+              communityHealth: community.health_percentage ?? community,
+            };
+
+            fs.writeFileSync("community-metrics.json", `${JSON.stringify(snapshot, null, 2)}\n`);
+
+            core.summary
+              .addHeading("Policy Translator community metrics")
+              .addTable([
+                [{ data: "Metric", header: true }, { data: "Value", header: true }],
+                ["Stars", String(snapshot.repository.stars ?? "unavailable")],
+                ["Forks", String(snapshot.repository.forks ?? "unavailable")],
+                ["Contributors", String(snapshot.collaboration.contributors ?? "unavailable")],
+                ["Issues", String(snapshot.collaboration.issues ?? "unavailable")],
+                ["Pull requests", String(snapshot.collaboration.pullRequests ?? "unavailable")],
+                ["Release downloads", String(snapshot.collaboration.releaseDownloads ?? "unavailable")],
+                ["14-day unique visitors", String(snapshot.traffic.views.uniques ?? "unavailable")],
+                ["14-day unique cloners", String(snapshot.traffic.clones.uniques ?? "unavailable")],
+                ["Community health", `${snapshot.communityHealth ?? "unavailable"}%`],
+              ])
+              .addRaw("\nOnly aggregate GitHub repository metrics are collected. Policy Translator does not send runtime product telemetry.\n")
+              .write();
+
+      - name: Upload metrics snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: community-metrics-${{ github.run_number }}
+          path: community-metrics.json
+          retention-days: 90

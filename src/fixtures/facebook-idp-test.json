@@ -1,0 +1,26 @@
+{
+  "policyName": "B2C_1A_SignIn_With_Facebook",
+  "features": [
+    {
+      "name": "signUp_auth_emailPassword",
+      "description": "Email and password sign-up",
+      "reason": "Self-asserted sign-up technical profile detected",
+      "recommendation": "Supported in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_auth_emailPassword",
+      "description": "Email and password sign-in",
+      "reason": "Self-asserted sign-in technical profile detected",
+      "recommendation": "Supported in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_idp_facebook",
+      "description": "Facebook social identity provider",
+      "reason": "Identity provider detected: Facebook (OAuth)",
+      "recommendation": "Configure as social IdP in External ID.",
+      "externalIdAvailability": "Available"
+    }
+  ]
+}

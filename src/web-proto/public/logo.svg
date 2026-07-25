@@ -1,0 +1,20 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Policy Translator logo">
+  <defs>
+    <linearGradient id="ptBadge" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0067b8"/>
+      <stop offset="1" stop-color="#5c2e91"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="40" height="40" rx="9" fill="url(#ptBadge)"/>
+  <!-- source policy card -->
+  <rect x="7.5" y="10.5" width="9" height="12" rx="1.6" fill="#ffffff" fill-opacity="0.55"/>
+  <rect x="9.4" y="13.2" width="5.2" height="1.4" rx="0.7" fill="#0067b8"/>
+  <rect x="9.4" y="15.8" width="5.2" height="1.4" rx="0.7" fill="#0067b8"/>
+  <!-- target External ID card -->
+  <rect x="23.5" y="17.5" width="9" height="12" rx="1.6" fill="#ffffff"/>
+  <rect x="25.4" y="20.2" width="5.2" height="1.4" rx="0.7" fill="#5c2e91"/>
+  <rect x="25.4" y="22.8" width="5.2" height="1.4" rx="0.7" fill="#5c2e91"/>
+  <!-- translate arrow bridging the two, sitting in the gradient gap -->
+  <path d="M16.8 19.5 H22.4" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M20 16.6 L23.2 19.5 L20 22.4" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

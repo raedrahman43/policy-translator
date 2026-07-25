@@ -1,0 +1,58 @@
+{
+  "policyName": "B2C_1A_TrustFrameworkBase",
+  "analysisTrace": {
+    "defaultUserJourneyId": "SignUpOrSignIn",
+    "orchestrationStepsAnalyzed": [
+      "Step 1: CombinedSignInAndSignUp (SelfAsserted-LocalAccountSignin-Email)",
+      "Step 2: ClaimsExchange (LocalAccountSignUpWithLogonEmail) — gated on objectId",
+      "Step 3: ClaimsExchange (AAD-UserReadUsingObjectId)",
+      "Step 4: SendClaims (JwtIssuer)"
+    ],
+    "subJourneysAnalyzed": [],
+    "claimsProvidersAnalyzed": [
+      "Local Account SignIn",
+      "Azure Active Directory",
+      "Self Asserted",
+      "Local Account",
+      "Session Management",
+      "Token Issuer",
+      "Refresh token journey"
+    ]
+  },
+  "features": [
+    {
+      "name": "signInScenario_email+password",
+      "reason": "SelfAsserted-LocalAccountSignin-Email sets setting.operatingMode=Email and the LocalAccountSignUpWithLogonEmail technical profile collects email + newPassword/reenterPassword. Validation uses login-NonInteractive (ROPC) against AAD.",
+      "externalIdAvailability": "Available",
+      "recommendation": "Email + password sign-in/sign-up is fully supported in Microsoft Entra External ID. Migration path is straightforward."
+    },
+    {
+      "name": "signInScenario_reconsenting",
+      "reason": "ProfileEdit user journey allows users to update givenName/surname via SelfAsserted-ProfileUpdate; profile-edit screens map to Entra External ID's profile-editing user flows.",
+      "externalIdAvailability": "Available",
+      "recommendation": "Profile editing is supported through Entra External ID user flows. No code changes required."
+    },
+    {
+      "name": "sessionControl_timeBased",
+      "reason": "Refresh-token revocation journey uses AssertDateTimeIsGreaterThan ClaimsTransformation comparing refreshTokenIssuedOnDateTime against refreshTokensValidFromDateTime to enforce time-based session validity. Custom session-management semantics are not directly available in External ID.",
+      "externalIdAvailability": "NeedsExtensions",
+      "recommendation": "Time-based refresh-token revocation logic should be reimplemented using External ID's Custom Authentication Extensions (token issuance start)."
+    }
+  ],
+  "migrationSummary": {
+    "readinessScore": "Medium",
+    "totalFeaturesDetected": 3,
+    "availableInExternalId": 2,
+    "onRoadmap": 0,
+    "needsExtensions": 1,
+    "migrationBlockers": [],
+    "migrationWarnings": [
+      "Refresh-token validity is gated on a custom date-time comparison (AssertRefreshTokenIssuedLaterThanValidFromDate). External ID does not expose the same session-management primitive; equivalent logic must be reintroduced via a Custom Authentication Extension."
+    ],
+    "quickWins": [
+      "Email and password sign-in/sign-up is fully supported in Microsoft Entra External ID with no additional configuration.",
+      "Profile-edit user journey maps cleanly to External ID's profile-edit user flow."
+    ],
+    "overallRecommendation": "Core authentication is supported. Session-based access-control logic (refresh-token revocation) requires Custom Authentication Extensions."
+  }
+}

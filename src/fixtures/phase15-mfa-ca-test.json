@@ -1,0 +1,33 @@
+{
+  "policyName": "B2C_1A_signup_signin_mfa",
+  "features": [
+    {
+      "name": "signUp_auth_emailPassword",
+      "description": "Email and password sign-up",
+      "reason": "Self-asserted sign-up technical profile detected",
+      "recommendation": "Supported in External ID. Migration path is straightforward.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_auth_emailPassword",
+      "description": "Email and password sign-in",
+      "reason": "Self-asserted sign-in technical profile detected",
+      "recommendation": "Supported in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_otp_phoneSms",
+      "description": "SMS one-time-passcode as a second factor",
+      "reason": "Phone factor (SMS) MFA technical profile detected",
+      "recommendation": "Enable SMS as an MFA authentication method in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_security_conditionalAccess",
+      "description": "Conditional access / MFA enforcement",
+      "reason": "Conditional access requirement detected in user journey",
+      "recommendation": "Translate to an External ID Conditional Access policy requiring MFA.",
+      "externalIdAvailability": "Available"
+    }
+  ]
+}

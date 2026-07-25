@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Policy Translator — Apply experience (prototype)</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="proto.css" />
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+</head>
+<body>
+  <div class="proto-ribbon">PROTOTYPE — “Apply” defaults to a safe simulation. Real provisioning is opt-in and requires admin sign-in.</div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="ms-cluster">
+        <img class="ms-logo" src="ms-logo.svg" width="20" height="20" alt="Microsoft" />
+        <span class="ms-word">Microsoft Entra</span>
+      </span>
+      <span class="brand-divider" aria-hidden="true"></span>
+      <img class="brand-mark" src="logo.svg" width="32" height="32" alt="" aria-hidden="true" />
+      <div class="brand-text">
+        <h1>Policy Translator</h1>
+        <p>Azure AD B2C &rarr; Microsoft Entra External ID</p>
+      </div>
+    </div>
+    <a class="topbar-link" href="http://localhost:4000" target="_blank" rel="noopener">Open the scripts version &#8599;</a>
+  </header>
+
+  <!-- Stepper -->
+  <nav class="stepper" aria-label="Progress">
+    <ol>
+      <li data-step="1" class="active"><span class="dot">1</span><span class="label">Upload policy</span></li>
+      <li data-step="2"><span class="dot">2</span><span class="label">Review</span></li>
+      <li data-step="3"><span class="dot">3</span><span class="label">Select &amp; brand</span></li>
+      <li data-step="4"><span class="dot">4</span><span class="label">Configure</span></li>
+      <li data-step="5"><span class="dot">5</span><span class="label">Apply</span></li>
+    </ol>
+  </nav>
+
+  <main class="container">
+
+    <!-- STEP 1: UPLOAD -->
+    <section class="panel" id="panel-1">
+      <h2>Upload your Policy Analyzer output</h2>
+      <p class="muted">
+        Run the B2C Policy Analyzer on your custom policy and upload the JSON result.
+        We detect every supported feature so you can pick what to stand up in External ID.
+      </p>
+
+      <div id="dropzone" class="dropzone">
+        <input type="file" id="fileInput" accept=".json,application/json" hidden />
+        <div class="dropzone-inner">
+          <div class="upload-icon" aria-hidden="true">&#8682;</div>
+          <p><strong>Drag &amp; drop</strong> your <code>analysis.json</code> here</p>
+          <p class="muted small">or</p>
+          <button class="btn-secondary" id="browseBtn" type="button">Browse files</button>
+          <p class="muted small" style="margin-top:14px;">
+            <a href="#" id="pasteToggle">Paste JSON instead</a> &middot;
+            <a href="#" id="sampleBtn">Try a sample policy</a>
+          </p>
+        </div>
+      </div>
+
+      <div id="pasteArea" class="paste-area" hidden>
+        <textarea id="jsonInput" placeholder='{ "policyName": "B2C_1A_...", "features": [ ... ] }' spellcheck="false"></textarea>
+        <button class="btn-primary" id="analyzePasteBtn" type="button">Analyze pasted JSON</button>
+      </div>
+
+      <div id="uploadError" class="alert alert-error" hidden></div>
+    </section>
+
+    <!-- STEP 2: REVIEW -->
+    <section class="panel" id="panel-2" hidden>
+      <div class="review-header">
+        <div>
+          <h2>Migration readiness</h2>
+          <p class="muted" id="policyNameLabel"></p>
+        </div>
+        <div class="readiness-badge" id="readinessBadge">
+          <div class="gauge" id="gauge"><span id="gaugePct">0%</span></div>
+          <div class="readiness-meta">
+            <span class="score" id="readinessScore">—</span>
+            <span class="muted small">readiness</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-row" id="statRow"></div>
+
+      <div class="review-grid">
+        <div class="review-col">
+          <h3>Detected features</h3>
+          <div class="feature-table-wrap">
+            <table class="feature-table" id="featureTable">
+              <thead><tr><th>Feature</th><th>Status</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="review-col">
+          <h3>Manual follow-ups <span class="muted small" id="gapCount"></span></h3>
+          <ul class="gap-list" id="gapList"></ul>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-ghost" id="backTo1" type="button">&larr; Start over</button>
+        <button class="btn-primary" id="goTo3" type="button">Choose what to configure &rarr;</button>
+      </div>
+    </section>
+
+    <!-- STEP 3: SELECT & BRAND -->
+    <section class="panel" id="panel-3" hidden>
+      <h2>Choose what to configure</h2>
+      <p class="muted">
+        Tick the things you want stood up in your External ID user flow. Core items are always included.
+        Customize the sign-in look on the right &mdash; the preview updates live.
+      </p>
+
+      <div class="migration-mode" role="radiogroup" aria-label="Migration approach">
+        <label class="migration-mode-option">
+          <input type="radio" name="migrationMode" value="preserve" checked />
+          <span>
+            <strong>Move my policy as-is</strong>
+            <small>Closest supported 1:1 recreation. Only detected capabilities are included.</small>
+          </span>
+        </label>
+        <label class="migration-mode-option">
+          <input type="radio" name="migrationMode" value="modernize" />
+          <span>
+            <strong>Modernize in External ID</strong>
+            <small>Start from the current policy, then add capabilities and refine the branding.</small>
+          </span>
+        </label>
+      </div>
+      <p class="migration-mode-note muted small" id="migrationModeNote"></p>
+
+      <div class="select-grid">
+        <div class="select-col">
+          <h3>Include in this migration</h3>
+          <div id="selectList" class="select-list"></div>
+        </div>
+
+        <div class="preview-col">
+          <h3>Sign-in preview</h3>
+
+          <div class="brand-import" id="brandImport">
+            <div class="brand-import-head">
+              <div>
+                <div class="brand-import-title">Recreate your real branding</div>
+                <div class="brand-import-sub">Import your current sign-in branding from the source Azure AD B2C tenant — the preview below will show your actual logo and colors.</div>
+              </div>
+            </div>
+            <div class="brand-import-row">
+              <input type="text" id="srcTenantId" placeholder="Source B2C tenant ID or domain (e.g. contoso.onmicrosoft.com)" />
+              <button class="btn-secondary" id="brandImportBtn" type="button">Import branding</button>
+            </div>
+            <div class="brand-device" id="brandDevice" hidden>
+              <p class="brand-device-instr">Sign in to your <strong>B2C</strong> tenant to read its branding: go to
+                <a id="brandDeviceLink" href="https://microsoft.com/devicelogin" target="_blank" rel="noopener">microsoft.com/devicelogin</a>
+                and enter the code:</p>
+              <div class="brand-device-code"><code id="brandDeviceCode">—</code><button class="btn-ghost small" id="brandCopyCode" type="button">Copy</button></div>
+              <div class="brand-device-status" id="brandDeviceStatus">Waiting for sign-in…</div>
+              <button class="btn-ghost small" id="brandCancelImport" type="button">Cancel</button>
+            </div>
+            <div class="brand-import-result" id="brandImportResult" hidden></div>
+          </div>
+
+          <div class="brand-locked-note" id="brandLockedNote" hidden>
+            <span class="bln-check" aria-hidden="true">&#10003;</span>
+            <span>Read live from your Azure AD B2C tenant &mdash; this is exactly what we&rsquo;ll recreate in External ID. No manual edits needed.</span>
+          </div>
+          <div class="brand-manual-label muted small" id="brandManualLabel">Or set it manually &mdash; used only if you don&rsquo;t import your real branding.</div>
+          <div class="brand-controls" id="brandControls">
+            <label class="brand-field">
+              <span>Company name</span>
+              <input type="text" id="brandName" placeholder="Contoso" />
+            </label>
+            <label class="brand-field">
+              <span>Accent color</span>
+              <input type="color" id="brandAccent" value="#0f6cbd" />
+            </label>
+            <label class="brand-field">
+              <span>Logo (upload or URL)</span>
+              <input type="file" id="brandLogoFile" accept="image/png,image/jpeg,image/svg+xml" />
+              <input type="text" id="brandLogo" placeholder="…or paste https://…/logo.png" />
+            </label>
+            <label class="brand-field">
+              <span>Background</span>
+              <input type="color" id="brandBg" value="#f3f6fb" />
+            </label>
+          </div>
+
+          <!-- Live mock of the External ID hosted sign-in page -->
+          <div class="login-preview" id="loginPreview">
+            <div class="login-card" id="loginCard">
+              <div class="login-logo" id="previewLogo">C</div>
+              <div class="login-title" id="previewTitle">Sign in</div>
+              <div class="login-sub" id="previewSub">to continue to your app</div>
+              <div class="login-field"><span>Email</span></div>
+              <div class="login-field"><span>Password</span></div>
+              <div class="login-forgot" id="previewForgot" hidden>Forgot password?</div>
+              <button class="login-primary" id="previewPrimary" type="button">Sign in</button>
+              <div class="login-or" id="previewOr" hidden><span>or</span></div>
+              <div class="login-idps" id="previewIdps"></div>
+              <div class="login-signup">No account? <span id="previewSignup">Create one</span></div>
+            </div>
+          </div>
+          <p class="muted small preview-note" id="previewNote">Representative preview of the External ID hosted sign-in page. Not pixel-perfect.</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-ghost" id="backTo2" type="button">&larr; Back</button>
+        <button class="btn-ghost js-view-scripts" type="button">&lt;/&gt; View the scripts</button>
+        <button class="btn-primary" id="goTo4" type="button">Enter credentials &rarr;</button>
+      </div>
+    </section>
+
+    <!-- STEP 4: CONFIGURE -->
+    <section class="panel" id="panel-4" hidden>
+      <h2>Configure your tenant</h2>
+      <p class="muted">
+        We only ask for what your selections need. Third-party IdP secrets (Google, Facebook, Apple, OIDC)
+        come from those providers' own consoles &mdash; we can't create them for you.
+      </p>
+
+      <form id="configForm" class="config-form" autocomplete="off"></form>
+
+      <div class="security-note">
+        <span class="lock" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <rect x="3.25" y="7" width="9.5" height="7" rx="1.5"></rect>
+            <path d="M5.25 7V4.75a2.75 2.75 0 0 1 5.5 0V7"></path>
+          </svg>
+        </span>
+        Next you'll choose <strong>Simulate</strong> (safe, no changes) or <strong>Apply to my tenant</strong>
+        (real — you sign in as admin and we provision via Microsoft Graph). IdP secrets are only used for the
+        live apply and are never stored.
+      </div>
+
+      <div class="actions">
+        <button class="btn-ghost" id="backTo3" type="button">&larr; Back</button>
+        <button class="btn-primary" id="reviewApplyBtn" type="button">Review &amp; apply &rarr;</button>
+      </div>
+    </section>
+
+    <!-- STEP 5: APPLY RESULT -->
+    <section class="panel" id="panel-5" hidden>
+      <div class="review-header">
+        <div>
+          <h2 id="applyHeading">Applying to External ID…</h2>
+          <p class="muted" id="applySubLabel"></p>
+        </div>
+      </div>
+
+      <!-- Device-code sign-in (real apply only) -->
+      <div class="device-auth" id="deviceAuth" hidden>
+        <h3>Sign in to your tenant</h3>
+        <p class="muted small">One-time admin sign-in. We use Microsoft's device-code flow — no app registration, and your token never leaves the server.</p>
+        <ol class="device-steps">
+          <li>Open <a id="deviceLink" href="https://microsoft.com/devicelogin" target="_blank" rel="noopener">microsoft.com/devicelogin</a></li>
+          <li>Enter this code:
+            <span class="device-code" id="deviceCode">--------</span>
+            <button class="btn-ghost small" id="copyCodeBtn" type="button">Copy</button>
+          </li>
+          <li>Approve the requested permissions.</li>
+        </ol>
+        <p class="device-status" id="deviceStatus">Waiting for sign-in…</p>
+        <div class="actions">
+          <button class="btn-ghost" id="cancelAuthBtn" type="button">Cancel</button>
+        </div>
+      </div>
+
+      <div class="apply-grid" id="applyGrid">
+        <div>
+          <ol id="applyProgress" class="apply-progress"></ol>
+          <div class="apply-gaps" id="applyGaps" hidden>
+            <div class="apply-gaps-head">
+              <h3>Still needs manual work <span class="muted small" id="applyGapCount"></span></h3>
+              <div class="gap-report-actions">
+                <button class="btn-secondary small" id="gapPreviewBtn" type="button">Preview gap report</button>
+                <button class="btn-ghost small" id="gapDownloadBtn" type="button">Download .md</button>
+              </div>
+            </div>
+            <ul id="applyGapList" class="gap-list"></ul>
+          </div>
+        </div>
+        <div class="apply-preview-col" id="applyPreviewCol" hidden>
+          <h3>Your sign-in page</h3>
+          <div class="login-preview small" id="resultPreviewMount"></div>
+          <div class="apply-summary" id="applySummary"></div>
+        </div>
+      </div>
+
+      <div class="actions" id="applyActions" hidden>
+        <button class="btn-ghost" id="restartBtn" type="button">&larr; Migrate another policy</button>
+        <button class="btn-ghost js-view-scripts" type="button">&lt;/&gt; View the scripts</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Consent + preview gate (shown before applying) -->
+  <div class="modal-backdrop" id="consentBackdrop" hidden>
+    <div class="modal consent-modal" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
+      <div class="modal-head">
+        <span id="consentTitle">Review before applying</span>
+        <button class="btn-ghost small" id="consentCancelX" type="button">Close</button>
+      </div>
+      <div class="consent-body">
+        <div class="consent-split">
+          <div class="consent-left">
+            <h4>What will be created in your tenant</h4>
+            <ul id="consentActions" class="consent-list"></ul>
+
+            <h4>Microsoft Graph permissions requested</h4>
+            <p class="muted small">You'd approve these delegated scopes once, at admin sign-in:</p>
+            <ul id="consentScopes" class="consent-scopes"></ul>
+
+            <h4>Admin role you'll need</h4>
+            <ul id="consentRoles" class="consent-list"></ul>
+          </div>
+          <div class="consent-right">
+            <h4>This is what your users will see</h4>
+            <div class="login-preview small" id="consentPreviewMount"></div>
+          </div>
+        </div>
+
+        <div class="apply-mode" id="applyMode">
+          <label class="mode-opt">
+            <input type="radio" name="applyMode" value="simulate" checked />
+            <span><strong>Simulate</strong> — safe walkthrough, no real changes (default).</span>
+          </label>
+          <label class="mode-opt">
+            <input type="radio" name="applyMode" value="real" />
+            <span><strong>Apply to my tenant</strong> — sign in as admin and provision for real.</span>
+          </label>
+        </div>
+
+        <div class="consent-check">
+          <label><input type="checkbox" id="consentAgree" /> <span id="consentAgreeText">I understand this is a simulated apply in the prototype (no real changes).</span></label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-ghost" id="consentCancel" type="button">Cancel</button>
+        <button class="btn-primary" id="consentProceed" type="button" disabled>Apply to External ID</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- Script viewer: the equivalent deterministic scripts for the selected steps -->
+  <div class="modal-backdrop" id="scriptBackdrop" hidden>
+    <div class="modal script-modal" id="scriptModal" role="dialog" aria-modal="true" aria-labelledby="scriptTitle">
+      <div class="modal-head">
+        <span id="scriptTitle">Equivalent scripts</span>
+        <button class="btn-ghost small" id="scriptCloseX" type="button">Close</button>
+      </div>
+      <div class="script-body">
+        <p class="muted small script-intro" id="scriptIntro">
+          The exact deterministic package that matches these steps &mdash; the same code the scripts version generates.
+          Inspect it, or download the full package to run it yourself.
+        </p>
+        <div class="script-split">
+          <aside class="script-files" id="scriptFiles" aria-label="Files"></aside>
+          <div class="script-view">
+            <div class="script-view-head">
+              <code id="scriptCurrentName">&mdash;</code>
+              <button class="btn-ghost small" id="scriptCopyBtn" type="button">Copy</button>
+            </div>
+            <pre class="script-pre"><code id="scriptContent"></code></pre>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-ghost" id="scriptClose" type="button">Close</button>
+        <button class="btn-primary" id="scriptDownloadBtn" type="button">Download package (.zip)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

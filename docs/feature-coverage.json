@@ -1,0 +1,1487 @@
+{
+  "counts": {
+    "automated": 18,
+    "guidedManual": 144,
+    "noGeneratedAction": 5,
+    "unaccounted": 0,
+    "total": 167
+  },
+  "rows": [
+    {
+      "feature": "global_infra_ddosCdn",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_ddosWaf",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_hostnameRestriction",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_journeyTimeMeasurement",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_orchestrationBranching",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_orchestrationLinear",
+      "bucket": "No generated action",
+      "steps": [],
+      "scripts": [],
+      "verification": "Platform/default behavior",
+      "note": "Linear orchestration is the default model in External ID user flows."
+    },
+    {
+      "feature": "global_infra_restApiClientCert",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_restApiCollect",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_restApiValidate",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_restrictPolicyToApp",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_subJourneys",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_throttlingGeoBlocking",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_userGroups",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_infra_validationChains",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_s2s_clientCredentials",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_s2s_onBehalfOf",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_claimsMapping",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "claims-mapping-policy"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "08-claims-mapping-policy.ps1"
+      ],
+      "verification": "Automated; live validation required",
+      "note": "Claims mapping policy requires an app registration and service principal; global_token_claimsMapping requires a claims mapping policy assigned to the SP"
+    },
+    {
+      "feature": "global_token_claimsTransformChain",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_claimsTransformation",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_customIssuer",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_customSigningCert",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_directoryRead",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_directoryWrite",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_encryption",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_externalClaims",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "claims-mapping-policy"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "08-claims-mapping-policy.ps1"
+      ],
+      "verification": "Automated; live validation required",
+      "note": "Custom token claims require an app registration and service principal; global_token_externalClaims uses a claims mapping policy to emit custom claims in the token"
+    },
+    {
+      "feature": "global_token_lifetimeManagement",
+      "bucket": "No generated action",
+      "steps": [],
+      "scripts": [],
+      "verification": "Platform/default behavior",
+      "note": "Token lifetime policies are configurable in External ID. No script needed."
+    },
+    {
+      "feature": "global_token_passthroughNoDirectory",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_perAppClaimsFilter",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_refreshToken",
+      "bucket": "No generated action",
+      "steps": [],
+      "scripts": [],
+      "verification": "Platform/default behavior",
+      "note": "Refresh tokens are supported by default in External ID. No configuration needed."
+    },
+    {
+      "feature": "global_token_regexClaimsExtract",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_samlCustomSigning",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_token_subClaimOverride",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_advancedUiCustomization",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_claimsProviderSelection",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_conditionalIdpPresentation",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_customDomain",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_customEmailTemplate",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_customQueryParams",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_customSmsTemplate",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_displayControls",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_domainBranding",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_dynamicDropdown",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_embeddedAuthUi",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_localization",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Configure Company Branding language localizations and localized user-flow attribute labels in the Entra admin center."
+    },
+    {
+      "feature": "global_ux_multiStepApiValidation",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_multiStepJourney",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_perAppBranding",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_splitSignUpPages",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "global_ux_tenantBranding",
+      "bucket": "Automated",
+      "steps": [
+        "migrate-company-branding"
+      ],
+      "scripts": [
+        "Port 4001 Graph apply"
+      ],
+      "verification": "Automated; live validation required",
+      "note": "The guided port-4001 workflow can import, preview, and write Company Branding."
+    },
+    {
+      "feature": "invitation_adminEntraId",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "invitation_adminSocialIdp",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "invitation_userEntraId",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "invitation_userMagicLink",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "invitation_userQrCode",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_bannedList",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_changeDuringSignIn",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_changeForSignedUser",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_customRegexComplexity",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_emailOrPhone",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_embedded",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_expirationHistoryBan",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_externalStore",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_externalValidation",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_force",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_forceAfter90Days",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_forceFirstLogon",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_history",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_phoneNumber",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_preventReuse",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_recovery",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "enable-sspr"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "09-enable-sspr.ps1"
+      ],
+      "verification": "Partial automation with required follow-up",
+      "note": "SSPR requires an app registration in the tenant; Password recovery is enabled on the user flow's sign-in experience; passwordReset_recovery requires SSPR to be enabled so users can reset their own password"
+    },
+    {
+      "feature": "passwordReset_security_passwordComplexity",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "External ID enforces a fixed default password policy (length and character-class requirements) and does not support B2C-style custom password complexity predicates. There is no automated equivalent; review the requirement against the default policy. This is distinct from self-service password reset, which is handled separately."
+    },
+    {
+      "feature": "passwordReset_standalone",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_usernameDiscovery",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "passwordReset_verifyEmailExists",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "profileEdit_attributesViaApi",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "profileEdit_attributesViaUi",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "profileEdit_changeUsername",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "profileEdit_linkLocalToSocial",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "profileEdit_linkMultipleSocial",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "profileEdit_progressiveProfiling",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_attributes_collectDuringSignIn",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_auth_emailPassword",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "smoke-test-native-auth"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "03-smoke-test-native-auth.ps1"
+      ],
+      "verification": "Live verified",
+      "note": "signIn_auth_emailPassword requires a native-auth-enabled app registration; signIn_auth_emailPassword is served by the same email+password user flow as sign-up; validate native auth wiring end-to-end after provisioning"
+    },
+    {
+      "feature": "signIn_auth_passkey",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "enable-passkey"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "13-enable-passkey.ps1"
+      ],
+      "verification": "Partial automation with required follow-up",
+      "note": "Passkey MFA needs an app registration in the tenant for context; signIn_auth_passkey requires passkey (FIDO2) enabled as an MFA authentication method"
+    },
+    {
+      "feature": "signIn_auth_phoneSmsPassword",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_auth_qrCode",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_auth_usernamePassword",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_auth_verifiedId",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_hrd_defaultIdp",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_hrd_domainBased_OIDC",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_hrd_domainBased_SAML",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_hrd_domainRouting",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_hrd_idpFiltering",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_idp_apple",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Configure Apple federation in the Microsoft Entra admin center, add it to the target user flow, and validate a real browser sign-in."
+    },
+    {
+      "feature": "signIn_idp_enterpriseOAuth",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_idp_enterpriseSaml",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_idp_entraId",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_idp_entraIdMultiTenant",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_idp_facebook",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "add-facebook-idp",
+        "smoke-test-native-auth"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "05-add-facebook-idp.ps1",
+        "03-smoke-test-native-auth.ps1"
+      ],
+      "verification": "Automated; live validation required",
+      "note": "Facebook sign-in requires a native-auth-enabled app registration; Facebook IdP attaches to the email+password user flow as an additional sign-in option; signIn_idp_facebook requires Facebook to be provisioned and bound to the user flow; validate native auth wiring end-to-end after provisioning"
+    },
+    {
+      "feature": "signIn_idp_google",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "add-google-idp",
+        "smoke-test-native-auth"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "04-add-google-idp.ps1",
+        "03-smoke-test-native-auth.ps1"
+      ],
+      "verification": "Automated; live validation required",
+      "note": "Google sign-in requires a native-auth-enabled app registration; Google IdP attaches to the email+password user flow as an additional sign-in option; signIn_idp_google requires Google to be provisioned and bound to the user flow; validate native auth wiring end-to-end after provisioning"
+    },
+    {
+      "feature": "signIn_idp_linkedIn",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_idp_microsoftAccount",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_idp_partnerIdp",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Configure the custom OpenID Connect provider in the Microsoft Entra admin center, add it to the target user flow, and validate a real browser sign-in."
+    },
+    {
+      "feature": "signIn_idp_samlArtifactBinding",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_idp_samlTokenEncryption",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_idp_weChat",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_idp_wsFederation",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_mfa_customControls",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_mfa_customRest",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_mfa_pushNotification",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_mfa_stepUp",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-ca-policy"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "12-create-ca-policy.ps1"
+      ],
+      "verification": "Partial automation with required follow-up",
+      "note": "The migration still needs its External ID application; Conditional Access separately targets the protected resource supplied by the operator; Step-up MFA is enforced via a Conditional Access policy requiring MFA"
+    },
+    {
+      "feature": "signIn_otp_authenticatorApp",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_otp_email",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "enable-email-otp",
+        "smoke-test-native-auth"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "07-enable-email-otp.ps1",
+        "03-smoke-test-native-auth.ps1"
+      ],
+      "verification": "Live verified",
+      "note": "Email OTP requires an app registration in the tenant; Email OTP is enabled at the tenant level and applies to user flows; signIn_otp_email requires email OTP to be enabled as an authentication method; validate native auth wiring end-to-end after provisioning"
+    },
+    {
+      "feature": "signIn_otp_phoneSms",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "enable-sms-mfa"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "11-enable-sms-mfa.ps1"
+      ],
+      "verification": "Partial automation with required follow-up",
+      "note": "SMS MFA needs an app registration in the tenant for context; signIn_otp_phoneSms requires SMS enabled as an MFA authentication method"
+    },
+    {
+      "feature": "signIn_otp_phoneVoice",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_s2s_ropc",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_security_accountLockout",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_security_accountTakeoverProtection",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_security_caCustomPolicy",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_security_callCenterValidation",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_security_captchaOnSignIn",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_security_conditionalAccess",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-ca-policy"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "12-create-ca-policy.ps1"
+      ],
+      "verification": "Partial automation with required follow-up",
+      "note": "The migration still needs its External ID application; Conditional Access separately targets the protected resource supplied by the operator; signIn_security_conditionalAccess maps to an External ID Conditional Access policy"
+    },
+    {
+      "feature": "signIn_security_idpInitiatedSso",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_security_impersonation",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_security_preventDisabledSocialLogon",
+      "bucket": "No generated action",
+      "steps": [],
+      "scripts": [],
+      "verification": "Platform/default behavior",
+      "note": "External ID natively blocks disabled accounts from signing in. No configuration needed."
+    },
+    {
+      "feature": "signIn_security_socialForceEmailUniqueness",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_security_socialForceEmailVerification",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_session_cookieRevocation",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_session_customTimeouts",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_session_kmsi",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Open the External ID user flow properties and configure Keep Me Signed In manually."
+    },
+    {
+      "feature": "signIn_session_lifecycleManagement",
+      "bucket": "No generated action",
+      "steps": [],
+      "scripts": [],
+      "verification": "Platform/default behavior",
+      "note": "Session lifetime is configurable via token lifetime policies in External ID."
+    },
+    {
+      "feature": "signIn_session_rememberIdp",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_ux_guidedFlow",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signIn_ux_updatedConsent",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_attributes_custom",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "smoke-test-native-auth"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "03-smoke-test-native-auth.ps1"
+      ],
+      "verification": "Live verified",
+      "note": "Custom attribute collection requires a native-auth-enabled app registration; signUp_attributes_custom is satisfied by the sign-up user flow; custom attributes are emitted from policy context; validate native auth wiring end-to-end after provisioning"
+    },
+    {
+      "feature": "signUp_attributes_standard",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "smoke-test-native-auth"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "03-smoke-test-native-auth.ps1"
+      ],
+      "verification": "Live verified",
+      "note": "Attribute collection requires a native-auth-enabled app registration; signUp_attributes_standard is satisfied by the sign-up user flow's attribute collection; validate native auth wiring end-to-end after provisioning"
+    },
+    {
+      "feature": "signUp_attributes_visitHistory",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_auth_emailPassword",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "smoke-test-native-auth"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "03-smoke-test-native-auth.ps1"
+      ],
+      "verification": "Live verified",
+      "note": "signUp_auth_emailPassword requires a native-auth-enabled app registration; signUp_auth_emailPassword requires an email+password sign-up user flow; validate native auth wiring end-to-end after provisioning"
+    },
+    {
+      "feature": "signUp_auth_nonEmailUsername",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_auth_passkey",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_auth_phoneSmsOTP",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_auth_qrCode",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_auth_usernamePassword",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_auth_verifiableCredential",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_auth_verifiedId",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_idp_apple",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Configure Apple federation in the Microsoft Entra admin center, add it to the target user flow, and validate a real browser sign-in."
+    },
+    {
+      "feature": "signUp_idp_enterpriseOAuth",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_idp_enterpriseOidc",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_idp_enterpriseSaml",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_idp_facebook",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "add-facebook-idp",
+        "smoke-test-native-auth"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "05-add-facebook-idp.ps1",
+        "03-smoke-test-native-auth.ps1"
+      ],
+      "verification": "Automated; live validation required",
+      "note": "Facebook sign-up requires a native-auth-enabled app registration; Facebook IdP attaches to the email+password user flow as an additional sign-up option; signUp_idp_facebook requires Facebook to be provisioned and bound to the user flow; validate native auth wiring end-to-end after provisioning"
+    },
+    {
+      "feature": "signUp_idp_google",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "add-google-idp",
+        "smoke-test-native-auth"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "04-add-google-idp.ps1",
+        "03-smoke-test-native-auth.ps1"
+      ],
+      "verification": "Automated; live validation required",
+      "note": "Google sign-up requires a native-auth-enabled app registration; Google IdP attaches to the email+password user flow as an additional sign-up option; signUp_idp_google requires Google to be provisioned and bound to the user flow; validate native auth wiring end-to-end after provisioning"
+    },
+    {
+      "feature": "signUp_idp_linkedIn",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_idp_microsoftAccount",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_mfa_authy",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_mfa_enrollAdditional",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_noEmailVerification",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_otp_authenticatorApp",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_otp_email",
+      "bucket": "Automated",
+      "steps": [
+        "create-native-app",
+        "create-user-flow-emailpassword",
+        "enable-email-otp",
+        "smoke-test-native-auth"
+      ],
+      "scripts": [
+        "01-create-native-app.ps1",
+        "02-create-user-flow.ps1",
+        "07-enable-email-otp.ps1",
+        "03-smoke-test-native-auth.ps1"
+      ],
+      "verification": "Live verified",
+      "note": "Email OTP requires an app registration in the tenant; Email OTP is enabled at the tenant level and applies to user flows; signUp_otp_email requires email OTP to be enabled as an authentication method; validate native auth wiring end-to-end after provisioning"
+    },
+    {
+      "feature": "signUp_otp_phoneSms",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_otp_phoneVoice",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_security_ageGating",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_security_byoFraudProvider",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_security_disableViaApi",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_security_fraudDetection",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_termsOfUse",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_ux_guidedMultiStep",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_ux_multiPageRegistration",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    },
+    {
+      "feature": "signUp_ux_noSignInPrompt",
+      "bucket": "Guided manual",
+      "steps": [],
+      "scripts": [],
+      "verification": "Manual",
+      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+    }
+  ]
+}

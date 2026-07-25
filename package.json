@@ -1,0 +1,49 @@
+{
+  "name": "policy-translator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Convert Azure AD B2C Policy Analyzer output into runnable PowerShell that configures the equivalent setup in Microsoft Entra External ID.",
+  "main": "index.js",
+  "scripts": {
+    "test": "ts-node src/test/regression.ts",
+    "test:web-proto": "ts-node src/test/webProtoRegression.ts",
+    "typecheck": "tsc --noEmit",
+    "check:powershell": "pwsh -NoProfile -File scripts/check-powershell.ps1",
+    "docs:features": "ts-node src/tools/generateFeatureDashboard.ts",
+    "check": "npm run typecheck && npm test && npm run test:web-proto && npm run check:powershell && npm run docs:features",
+    "translate": "ts-node src/index.ts",
+    "web": "ts-node src/web/server.ts",
+    "web:proto": "ts-node src/web-proto/server.ts"
+  },
+  "keywords": [
+    "azure-ad-b2c",
+    "entra-external-id",
+    "ciam",
+    "migration",
+    "identity"
+  ],
+  "author": "Microsoft Corporation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/raedrahman43/policy-translator.git"
+  },
+  "homepage": "https://github.com/raedrahman43/policy-translator#readme",
+  "bugs": {
+    "url": "https://github.com/raedrahman43/policy-translator/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "@types/node": "^25.9.1",
+    "express": "^5.2.1",
+    "jszip": "^3.10.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  }
+}

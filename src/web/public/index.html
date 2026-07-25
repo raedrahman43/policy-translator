@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>B2C → External ID Migration Translator</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-mark" src="logo.svg" width="36" height="36" alt="" aria-hidden="true" />
+      <div class="brand-text">
+        <h1>Policy Migration Translator</h1>
+        <p>Azure AD B2C &rarr; Microsoft Entra External ID</p>
+      </div>
+    </div>
+    <a class="topbar-link" href="https://learn.microsoft.com/entra/external-id/" target="_blank" rel="noopener">External ID docs &#8599;</a>
+  </header>
+
+  <!-- Stepper -->
+  <nav class="stepper" aria-label="Progress">
+    <ol>
+      <li data-step="1" class="active"><span class="dot">1</span><span class="label">Upload policy</span></li>
+      <li data-step="2"><span class="dot">2</span><span class="label">Review readiness</span></li>
+      <li data-step="3"><span class="dot">3</span><span class="label">Configure</span></li>
+      <li data-step="4"><span class="dot">4</span><span class="label">Generate scripts</span></li>
+    </ol>
+  </nav>
+
+  <main class="container">
+
+    <!-- STEP 1: UPLOAD -->
+    <section class="panel" id="panel-1">
+      <h2>Upload your Policy Analyzer output</h2>
+      <p class="muted">
+        Run the B2C Policy Analyzer on your custom policy and upload the JSON result here.
+        We detect every supported feature and build the scripts to recreate it in External ID.
+      </p>
+
+      <div id="dropzone" class="dropzone">
+        <input type="file" id="fileInput" accept=".json,application/json" hidden />
+        <div class="dropzone-inner">
+          <div class="upload-icon" aria-hidden="true">&#8682;</div>
+          <p><strong>Drag &amp; drop</strong> your <code>analysis.json</code> here</p>
+          <p class="muted small">or</p>
+          <button class="btn-secondary" id="browseBtn" type="button">Browse files</button>
+          <p class="muted small" style="margin-top:14px;">
+            <a href="#" id="pasteToggle">Paste JSON instead</a> &middot;
+            <a href="#" id="sampleBtn">Try a sample policy</a>
+          </p>
+        </div>
+      </div>
+
+      <div id="pasteArea" class="paste-area" hidden>
+        <textarea id="jsonInput" placeholder='{ "policyName": "B2C_1A_...", "features": [ ... ] }' spellcheck="false"></textarea>
+        <button class="btn-primary" id="analyzePasteBtn" type="button">Analyze pasted JSON</button>
+      </div>
+
+      <div id="uploadError" class="alert alert-error" hidden></div>
+    </section>
+
+    <!-- STEP 2: REVIEW -->
+    <section class="panel" id="panel-2" hidden>
+      <div class="review-header">
+        <div>
+          <h2>Migration readiness</h2>
+          <p class="muted" id="policyNameLabel"></p>
+        </div>
+        <div class="readiness-badge" id="readinessBadge">
+          <div class="gauge" id="gauge"><span id="gaugePct">0%</span></div>
+          <div class="readiness-meta">
+            <span class="score" id="readinessScore">—</span>
+            <span class="muted small">readiness</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-row" id="statRow"></div>
+
+      <div class="review-grid">
+        <div class="review-col">
+          <h3>Detected features</h3>
+          <div class="feature-table-wrap">
+            <table class="feature-table" id="featureTable">
+              <thead><tr><th>Feature</th><th>Status</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="review-col">
+          <h3>Scripts we'll generate</h3>
+          <ul class="step-list" id="stepList"></ul>
+
+          <h3 style="margin-top:22px;">Manual follow-ups <span class="muted small" id="gapCount"></span></h3>
+          <ul class="gap-list" id="gapList"></ul>
+        </div>
+      </div>
+
+      <div id="reviewWarnings" class="alert alert-warn" hidden></div>
+
+      <div class="actions">
+        <button class="btn-ghost" id="backTo1" type="button">&larr; Start over</button>
+        <button class="btn-primary" id="goTo3" type="button">Configure &amp; continue &rarr;</button>
+      </div>
+    </section>
+
+    <!-- STEP 3: CONFIGURE -->
+    <section class="panel" id="panel-3" hidden>
+      <h2>Configure your tenant</h2>
+      <p class="muted">
+        We only ask for what your policy actually needs. These values are injected into the scripts you download.
+        <strong>Nothing is stored on the server.</strong>
+      </p>
+
+      <form id="configForm" class="config-form" autocomplete="off"></form>
+
+      <div class="security-note">
+        <span class="lock" aria-hidden="true">&#128274;</span>
+        Secrets are written into the downloaded PowerShell scripts so you can run them yourself.
+        Treat the generated files like credentials &mdash; don't commit them to source control.
+      </div>
+
+      <div class="actions">
+        <button class="btn-ghost" id="backTo2" type="button">&larr; Back</button>
+        <button class="btn-primary" id="generateBtn" type="button">Generate migration package &rarr;</button>
+      </div>
+    </section>
+
+    <!-- STEP 4: RESULTS -->
+    <section class="panel" id="panel-4" hidden>
+      <div class="review-header">
+        <div>
+          <h2>Your migration package is ready</h2>
+          <p class="muted" id="resultPolicyLabel"></p>
+        </div>
+        <button class="btn-primary" id="downloadZipBtn" type="button">&#8681; Download all (.zip)</button>
+      </div>
+
+      <div class="run-order">
+        <h3>How to run these scripts</h3>
+
+        <div class="howto-block">
+          <h4>Before you run &mdash; one-time setup</h4>
+          <ul class="howto-list">
+            <li><strong>Install PowerShell 7+</strong> (the <code>pwsh</code> command). These scripts target <code>pwsh</code>, not Windows PowerShell 5.</li>
+            <li><strong>Install the Microsoft Graph module:</strong> <code>Install-Module Microsoft.Graph -Scope CurrentUser</code></li>
+            <li><strong>Sign in as an admin</strong> of your External ID tenant who can consent to the Graph permissions listed when you clicked Generate.</li>
+          </ul>
+        </div>
+
+        <div class="howto-block">
+          <h4>Run order</h4>
+          <p class="muted small">
+            Open a terminal <strong>inside the extracted package folder</strong> (in File Explorer:
+            hold <strong>Shift</strong>, right-click an empty area, choose <strong>Open in Terminal</strong>).
+            Confirm you are in the right place with <code>ls</code> &mdash; you should see the <code>.ps1</code> files.
+            Then run each script in order; each prints a result you can verify before moving on.
+          </p>
+          <ol id="runOrderList" class="run-list"></ol>
+          <button id="copyAllCmds" class="btn-secondary small" type="button">Copy all commands</button>
+          <p class="muted small">
+            The scripts pass context to each other automatically through local <code>.last-*.json</code> files,
+            so keep them together in the same folder. Run them in your own <code>pwsh</code> window
+            (not from an IDE or a subprocess) so interactive sign-in works.
+          </p>
+        </div>
+      </div>
+
+      <div class="file-list" id="fileList"></div>
+
+      <div class="actions">
+        <button class="btn-ghost" id="restartBtn" type="button">&larr; Translate another policy</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Consent / permissions gate (shown before generating) -->
+  <div class="modal-backdrop" id="consentBackdrop" hidden>
+    <div class="modal consent-modal" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
+      <div class="modal-head">
+        <span id="consentTitle">Before we generate your scripts</span>
+        <button class="btn-ghost small" id="consentCancelX" type="button">Close</button>
+      </div>
+      <div class="consent-body">
+        <p class="consent-lead">
+          The package you download contains PowerShell scripts that <strong>you</strong> run against
+          <strong>your own</strong> Entra External ID tenant. Nothing runs on this server, and
+          <strong>no changes are made to your tenant until you run the scripts yourself</strong>.
+        </p>
+
+        <h4>What these scripts will do in your tenant</h4>
+        <ul id="consentActions" class="consent-list"></ul>
+
+        <h4>Microsoft Graph permissions they will request</h4>
+        <p class="muted small">
+          When you run the scripts, <code>Connect-MgGraph</code> asks you to consent to these delegated scopes.
+          You can review them at the sign-in prompt before approving:
+        </p>
+        <ul id="consentScopes" class="consent-scopes"></ul>
+
+        <h4>Admin role you'll need</h4>
+        <ul id="consentRoles" class="consent-list"></ul>
+
+        <div class="consent-check">
+          <label><input type="checkbox" id="consentAgree" /> I understand these scripts will modify my tenant when I choose to run them.</label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-ghost" id="consentCancel" type="button">Cancel</button>
+        <button class="btn-primary" id="consentProceed" type="button" disabled>I understand &mdash; generate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script viewer modal -->
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <span id="modalTitle"></span>
+        <div>
+          <button class="btn-secondary small" id="copyScriptBtn" type="button">Copy</button>
+          <button class="btn-ghost small" id="closeModalBtn" type="button">Close</button>
+        </div>
+      </div>
+      <pre class="code-view"><code id="modalCode"></code></pre>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

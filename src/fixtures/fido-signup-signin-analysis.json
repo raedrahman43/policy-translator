@@ -1,0 +1,258 @@
+{
+  "policyName": "B2C_1A_fido_signup_signin",
+  "features": [
+    {
+      "name": "signUp_auth_emailPassword",
+      "description": "Email and password sign-up",
+      "reason": "Self-asserted sign-up technical profile detected",
+      "recommendation": "Supported in External ID. Migration path is straightforward.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_auth_emailPassword",
+      "description": "Email and password sign-in",
+      "reason": "Self-asserted sign-in technical profile detected",
+      "recommendation": "Supported in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_idp_partnerIdp",
+      "description": "Custom OIDC identity provider",
+      "reason": "Identity provider detected: JWT Issuer (OpenIdConnect)",
+      "recommendation": "Configure as generic OIDC provider in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_otp_email",
+      "description": "MFA via email OTP",
+      "reason": "Email OTP technical profile detected",
+      "recommendation": "Use built-in email OTP MFA in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signUp_attributes_custom",
+      "description": "Custom extension attributes",
+      "reason": "Extension attributes detected in claims schema",
+      "recommendation": "Use custom security attributes or custom claims provider.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_claimsTransformation",
+      "description": "String claims transformations",
+      "reason": "String transformation methods detected (FormatStringClaim, StringReplace, etc.)",
+      "recommendation": "Logic moves from XML to Azure Function via custom auth extensions.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_claimsTransformation",
+      "description": "Collection transformations",
+      "reason": "Collection transformation methods detected (AddItemToStringCollection, etc.)",
+      "recommendation": "Implement in custom auth extensions.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_claimsMapping",
+      "description": "Claims partner mapping",
+      "reason": "PartnerClaimType mappings detected in technical profiles",
+      "recommendation": "Use claims mapping policy or custom auth extensions.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_directoryRead",
+      "description": "Claims read from directory",
+      "reason": "Directory read technical profile detected (AAD-UserRead)",
+      "recommendation": "Use Microsoft Graph in custom auth extension.",
+      "externalIdAvailability": "DifferentApproach"
+    },
+    {
+      "name": "global_token_externalClaims",
+      "description": "Custom token claims",
+      "reason": "Custom or extension claims in RelyingParty output",
+      "recommendation": "Use claims mapping or custom claims provider.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_infra_restApiCollect",
+      "description": "REST API data collection",
+      "reason": "8 REST API technical profile(s) detected",
+      "recommendation": "Use custom auth extensions (OnAttributeCollectionStart/Submit).",
+      "externalIdAvailability": "Partial"
+    },
+    {
+      "name": "global_infra_restApiValidate",
+      "description": "REST API validation",
+      "reason": "REST API technical profile used in ValidationTechnicalProfiles",
+      "recommendation": "Use custom auth extensions for pre/post events.",
+      "externalIdAvailability": "Partial"
+    },
+    {
+      "name": "global_token_externalClaims",
+      "description": "REST API token enrichment",
+      "reason": "REST API technical profile in step before SendClaims detected",
+      "recommendation": "Best supported scenario: custom claims provider (OnTokenIssuanceStart).",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_ux_advancedUiCustomization",
+      "description": "Custom HTML/CSS page templates",
+      "reason": "14 custom HTML content definition(s) detected",
+      "recommendation": "External ID uses company branding + CSS, less flexible than B2C custom UI.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "global_ux_localization",
+      "description": "Multi-language localization",
+      "reason": "Localization content definitions detected",
+      "recommendation": "Supported in External ID user flows.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_ux_displayControls",
+      "description": "Display controls (verification UI)",
+      "reason": "Display controls detected in technical profiles",
+      "recommendation": "Use built-in verification flows in External ID.",
+      "externalIdAvailability": "DifferentApproach"
+    },
+    {
+      "name": "global_ux_tenantBranding",
+      "description": "Tenant branding via content definitions",
+      "reason": "ContentDefinition(s) with DataUri detected — B2C built-in branding system is in use",
+      "recommendation": "Company branding is supported in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_infra_orchestrationLinear",
+      "description": "Linear user journey flow",
+      "reason": "1 user journey(s) detected",
+      "recommendation": "User flows (visual designer) in External ID. Simpler model.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_infra_orchestrationBranching",
+      "description": "Journey branching (preconditions)",
+      "reason": "User journey steps with preconditions detected",
+      "recommendation": "External ID flows are linear. Complex branching needs custom auth extensions.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "global_infra_validationChains",
+      "description": "Validation chains",
+      "reason": "SelfAsserted technical profiles with validation chains detected",
+      "recommendation": "Use custom auth extensions.",
+      "externalIdAvailability": "Partial"
+    },
+    {
+      "name": "signIn_hrd_defaultIdp",
+      "description": "Home realm discovery with default IdP",
+      "reason": "Default IdP selection detected (single ClaimsProviderSelection or DefaultIdP metadata)",
+      "recommendation": "Default IdP selection needs custom auth extensions in External ID.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "global_token_lifetimeManagement",
+      "description": "Token lifetime configuration",
+      "reason": "Relying party configuration detected",
+      "recommendation": "Configure token lifetime policies in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_session_lifecycleManagement",
+      "description": "SSO configuration",
+      "reason": "SSO / session management configuration detected",
+      "recommendation": "Configure SSO settings in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_refreshToken",
+      "description": "Refresh token support",
+      "reason": "JWT Issuer technical profile detected — refresh token capability is available",
+      "recommendation": "Refresh tokens are supported in External ID.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_auth_passkey",
+      "description": "FIDO2/Passkey/WebAuthn",
+      "reason": "FIDO2/Passkey/WebAuthn claims or technical profiles detected",
+      "recommendation": "Enable passkey (FIDO2) as an MFA method. Applies to password-based local accounts (Email/Username + password).",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signUp_auth_passkey",
+      "description": "Sign-up with passkey/FIDO2",
+      "reason": "Passkey sign-in detected — B2C sign-in includes sign-up capability",
+      "recommendation": "Passkey sign-up needs custom auth extensions in External ID.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "global_ux_advancedUiCustomization",
+      "description": "Custom JavaScript in pages",
+      "reason": "ScriptExecution=Allow in UserJourneyBehaviors",
+      "recommendation": "External ID supports limited JS via company branding customization.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "passwordReset_security_passwordComplexity",
+      "description": "Password complexity rules",
+      "reason": "Password predicate validation detected in claims schema",
+      "recommendation": "Configure password policies in External ID.",
+      "externalIdAvailability": "NeedsExtensions"
+    },
+    {
+      "name": "signIn_security_preventDisabledSocialLogon",
+      "description": "Prevent disabled account sign-in",
+      "reason": "accountEnabled claim check detected in sign-in orchestration",
+      "recommendation": "External ID natively blocks disabled accounts from signing in.",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_ux_guidedFlow",
+      "description": "Multi-page sign-in flow",
+      "reason": "3+ non-trivial steps in sign-in journey",
+      "recommendation": "Multi-page guided flows need custom auth extensions in External ID.",
+      "externalIdAvailability": "NeedsExtensions"
+    }
+  ],
+  "migrationSummary": {
+    "readinessScore": "Medium",
+    "totalFeaturesDetected": 30,
+    "availableInExternalId": 17,
+    "onRoadmap": 1,
+    "needsExtensions": 7,
+    "migrationBlockers": [],
+    "migrationWarnings": [
+      "global_token_directoryRead requires a different approach",
+      "global_infra_restApiCollect is partially supported",
+      "global_infra_restApiValidate is partially supported",
+      "global_ux_advancedUiCustomization needs custom extensions",
+      "global_ux_displayControls requires a different approach",
+      "global_infra_orchestrationBranching needs custom extensions",
+      "global_infra_validationChains is partially supported",
+      "signIn_hrd_defaultIdp needs custom extensions",
+      "signIn_auth_passkey maps to passkey (FIDO2) MFA (script 13)",
+      "signUp_auth_passkey needs custom extensions",
+      "global_ux_advancedUiCustomization needs custom extensions",
+      "passwordReset_security_passwordComplexity needs custom extensions",
+      "signIn_ux_guidedFlow needs custom extensions"
+    ],
+    "quickWins": [
+      "signUp_auth_emailPassword",
+      "signIn_auth_emailPassword",
+      "signIn_idp_partnerIdp",
+      "signIn_otp_email",
+      "signUp_attributes_custom",
+      "global_token_claimsTransformation",
+      "global_token_claimsTransformation",
+      "global_token_claimsMapping",
+      "global_token_externalClaims",
+      "global_token_externalClaims",
+      "global_ux_localization",
+      "global_ux_tenantBranding",
+      "global_infra_orchestrationLinear",
+      "global_token_lifetimeManagement",
+      "signIn_session_lifecycleManagement",
+      "global_token_refreshToken",
+      "signIn_security_preventDisabledSocialLogon"
+    ],
+    "overallRecommendation": "This policy can be migrated with moderate effort. 17 of 30 features are available, but some require alternative approaches or custom extensions."
+  }
+}
