@@ -37,6 +37,28 @@ npm run web:proto
 
 Open <http://localhost:4001>.
 
+## Get Policy Analyzer JSON
+
+For an existing Azure AD B2C tenant with custom policies:
+
+1. Open the Azure portal and switch to the B2C tenant.
+2. Go to **Identity Experience Framework**.
+3. Open **Migration Policy Analyzer**.
+4. Select the policy files, including at least one relying-party (RP) policy.
+5. Select **Analyze Policies**.
+6. Download/copy the JSON result from the analyzer API response and use it as the
+   Policy Translator input.
+
+You need **B2C IEF Policy Administrator** or **Global Administrator**. The analyzer is
+for custom policies; standard user flows do not require analysis.
+
+Microsoft documentation:
+[Analyze Azure AD B2C custom policies](https://learn.microsoft.com/entra/external-id/customers/how-to-analyze-azure-ad-b2c-custom-policies).
+
+If you do not have an existing B2C custom-policy tenant, use
+[`data/sample.json`](data/sample.json) to evaluate Policy Translator. Migration Policy
+Analyzer is an in-tenant B2C feature, not a standalone public CLI.
+
 The port-4001 experience guides you through:
 
 1. Uploading or pasting Policy Analyzer JSON.

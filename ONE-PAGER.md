@@ -14,6 +14,16 @@ npm run web:proto
 
 Open <http://localhost:4001>.
 
+## Get the input
+
+Existing B2C custom-policy customers can use:
+
+**Azure portal -> B2C tenant -> Identity Experience Framework -> Migration Policy
+Analyzer -> Analyze Policies**.
+
+Include an RP policy and use the JSON result. The required role is B2C IEF Policy
+Administrator or Global Administrator. Without B2C access, use `data/sample.json`.
+
 ## Recommended customer-admin flow
 
 1. Use a non-production External ID tenant.

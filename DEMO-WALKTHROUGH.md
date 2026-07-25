@@ -18,6 +18,14 @@ npm run web:proto
 
 Open <http://localhost:4001>.
 
+To obtain a real export:
+
+**Azure portal -> B2C tenant -> Identity Experience Framework -> Migration Policy
+Analyzer -> select policies including an RP policy -> Analyze Policies**.
+
+Use the JSON from the analyzer API response. If you do not have an existing B2C
+custom-policy tenant, use `data/sample.json`.
+
 ## 1. Analyze
 
 Upload the Analyzer JSON. Confirm:

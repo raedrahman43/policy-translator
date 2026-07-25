@@ -1,0 +1,9 @@
+* text=auto
+
+# Generated deterministically by npm run docs:features on Windows and Linux.
+docs/FEATURE-MATRIX.md text eol=lf
+docs/feature-coverage.json text eol=lf
+
+# GitHub configuration is consumed on Linux runners.
+.github/**/*.yml text eol=lf
+.github/**/*.yaml text eol=lf

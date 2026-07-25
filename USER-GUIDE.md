@@ -19,7 +19,28 @@ Open <http://localhost:4001>.
 
 The service is local-only. Keep the terminal open while using the browser.
 
-## 2. Provide Analyzer input
+## 2. Obtain Policy Analyzer input
+
+For an existing Azure AD B2C custom-policy tenant:
+
+1. Open the Azure portal and switch to the B2C directory.
+2. Open **Identity Experience Framework**.
+3. Select **Migration Policy Analyzer**.
+4. Select the uploaded policy files and include an RP policy.
+5. Select **Analyze Policies**.
+6. Download the JSON from the analyzer API response or copy the formatted portal
+   result.
+
+Required role: **B2C IEF Policy Administrator** or **Global Administrator**.
+
+The analyzer is for custom policies. Standard B2C user flows do not need analysis. New
+users without an existing B2C tenant should use the repository's synthetic
+[`data/sample.json`](data/sample.json) for evaluation.
+
+Official instructions:
+<https://learn.microsoft.com/entra/external-id/customers/how-to-analyze-azure-ad-b2c-custom-policies>.
+
+## 3. Provide Analyzer input
 
 Upload or paste a Policy Analyzer JSON export. Do not use a customer export when
 reporting a public issue; create a synthetic minimum reproduction instead.
@@ -32,7 +53,7 @@ The review page separates:
 - guided manual work;
 - and capabilities with no direct equivalent.
 
-## 3. Choose the migration approach
+## 4. Choose the migration approach
 
 ### Move my policy as-is
 
@@ -47,7 +68,7 @@ Branding controls are unlocked so you can intentionally change the sign-in exper
 The preview is representative of the hosted External ID page, not a pixel-perfect
 browser renderer.
 
-## 4. Branding
+## 5. Branding
 
 Policy Analyzer often tells the tool that branding exists without including the actual
 image files or colors.
@@ -62,7 +83,7 @@ For an exact source read:
 For modernization, you can upload a local image or supply a public HTTPS image URL.
 Uploaded files remain in the request and are not written to disk.
 
-## 5. Configure the target tenant
+## 6. Configure the target tenant
 
 The form asks only for selected automated features.
 
@@ -82,7 +103,7 @@ Feature-specific inputs:
 Apple and custom OIDC appear in the gap report with admin-center instructions rather
 than unsupported Graph writes.
 
-## 6. Review permissions
+## 7. Review permissions
 
 Before apply, the consent dialog shows the exact delegated Graph scopes and likely
 administrator roles.
@@ -99,7 +120,7 @@ Common roles include:
 Microsoft Graph permissions do not replace directory roles. A 403 result normally means
 the signed-in account lacks a required role or admin-consented delegated scope.
 
-## 7. Simulate first
+## 8. Simulate first
 
 Simulation creates no resources and fabricates no success IDs. It shows the planned
 actions, final preview, and analyzer gaps.
@@ -111,7 +132,7 @@ Use simulation to:
 - confirm requested permissions;
 - and review the expected follow-up report.
 
-## 8. Apply for real
+## 9. Apply for real
 
 Select **Apply to my tenant**, acknowledge the warning, and complete device-code sign-in.
 The server stores the token in memory for the short-lived apply session.
@@ -127,7 +148,7 @@ Each result is one of:
 The executor continues through independent steps so you receive a complete follow-up
 list, but dependent operations do not claim success after a prerequisite failure.
 
-## 9. Use the result page
+## 10. Use the result page
 
 The final page shows:
 
@@ -140,7 +161,7 @@ Use **Preview gap report** for a full-width, wrapped report containing analyzer 
 Graph failures, skipped steps, and required validation work. Use **Download .md** to
 keep that report with the migration record.
 
-## 10. Inspect or run the scripts
+## 11. Inspect or run the scripts
 
 At any point, select **View the scripts**. The package uses the same mapper and payload
 intent as the live backend.
@@ -157,7 +178,7 @@ pwsh ./02-create-user-flow.ps1
 Scripts keep local state in `$PSScriptRoot\.last-*.json`, are safe to move as a folder,
 and fail non-zero when required configuration is missing or a write cannot be verified.
 
-## 11. Validate the tenant
+## 12. Validate the tenant
 
 Do not treat a Graph 2xx response as the only proof.
 
