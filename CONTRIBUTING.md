@@ -6,6 +6,7 @@ Thank you for helping make Policy Translator safer and more complete.
 
 Read:
 
+- [AGENTS.md](AGENTS.md)
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [docs/ADDING-A-FEATURE.md](docs/ADDING-A-FEATURE.md)
 - [docs/TESTING.md](docs/TESTING.md)

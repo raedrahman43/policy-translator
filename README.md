@@ -143,8 +143,13 @@ npm run docs:features
 - `npm run test:web-proto`: mocked-Graph coverage for the port-4001 backend.
 - `npm run docs:features`: regenerates the feature chart and JSON dashboard.
 
+For AI-assisted development, start with [AGENTS.md](AGENTS.md). It provides a compact
+architecture map, non-negotiable safety rules, feature extension points, validation
+requirements, known limitations, and a reusable prompt for coding assistants.
+
 See:
 
+- [AGENTS.md](AGENTS.md)
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [docs/ADDING-A-FEATURE.md](docs/ADDING-A-FEATURE.md)
