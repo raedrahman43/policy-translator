@@ -21,6 +21,7 @@ import { validateAndNormalize } from "../parsers/inputValidator";
 import { extractPolicyContext } from "../parsers/policyContextParser";
 import { mapAllFeatures, MappingResult, StepKind } from "../mappers/featureMap";
 import { generatePackage, injectCustomAttributeStep, TenantConfig } from "../generators/scriptGenerator";
+import { buildFeatureView, buildReadiness } from "./analyzerPresentation";
 import { deriveRequiredInputs } from "./inputRequirements";
 
 const app = express();
@@ -36,15 +37,6 @@ interface AnalyzeOutcome {
   status: number;
   body: Record<string, unknown>;
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  Available: "Ready to migrate",
-  Partial: "Partially available",
-  NeedsExtensions: "Needs custom extensions",
-  DifferentApproach: "Different approach",
-  OnRoadmap: "On roadmap",
-  NotAvailable: "Not yet available",
-};
 
 function analyze(rawJson: unknown): AnalyzeOutcome {
   const validation = validateAndNormalize(rawJson);
@@ -65,23 +57,8 @@ function analyze(rawJson: unknown): AnalyzeOutcome {
   const context = extractPolicyContext(policyName, features);
   const { mapped, unmapped } = mapAllFeatures(features);
 
-  // Readiness counts by status
-  const byStatus: Record<string, number> = {};
-  for (const f of features) {
-    byStatus[f.externalIdAvailability] = (byStatus[f.externalIdAvailability] || 0) + 1;
-  }
-  const available = byStatus["Available"] || 0;
-  const total = features.length;
-  const readinessPct = total > 0 ? Math.round((available / total) * 100) : 0;
-  const readinessScore = readinessPct >= 70 ? "High" : readinessPct >= 40 ? "Medium" : "Low";
-
-  // Per-feature view for the review table
-  const featureView = features.map((f) => ({
-    name: f.name,
-    description: f.description || "",
-    status: f.externalIdAvailability,
-    statusLabel: STATUS_LABELS[f.externalIdAvailability] || f.externalIdAvailability,
-  }));
+  const readiness = buildReadiness(rawJson, features);
+  const featureView = buildFeatureView(features, mapped, "Ready to migrate");
 
   // What scripts will be generated + why
   const stepReasons = new Map<string, string[]>();
@@ -113,6 +90,9 @@ function analyze(rawJson: unknown): AnalyzeOutcome {
       feature: r.gapReport!.feature,
       reason: r.gapReport!.reason,
       recommendation: r.gapReport!.recommendation,
+      availability: r.gapReport!.availability,
+      notes: r.gapReport!.notes,
+      docLink: r.gapReport!.docLink,
     }));
 
   const requiredInputs = deriveRequiredInputs(mapped);
@@ -125,14 +105,7 @@ function analyze(rawJson: unknown): AnalyzeOutcome {
       warnings: validation.warnings,
       normalized: validation.normalized,
       policyName,
-      readiness: {
-        score: readinessScore,
-        percent: readinessPct,
-        total,
-        available,
-        needsWork: total - available,
-        byStatus,
-      },
+      readiness,
       context: {
         appName: context.appName,
         flowName: context.flowName,

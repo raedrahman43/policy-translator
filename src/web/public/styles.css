@@ -159,6 +159,13 @@ button.small { padding: 5px 12px; font-size: .82rem; }
 .pill.DifferentApproach { background: #e8def8; color: var(--purple); }
 .pill.OnRoadmap { background: var(--brand-soft); color: var(--brand); }
 .pill.NotAvailable { background: var(--red-soft); color: var(--red); }
+.pill.RequiresCustomDevelopment { background: var(--amber-soft); color: var(--amber); }
+.pill.ArchitectureIncompatible { background: #f3e8ff; color: #6b21a8; }
+.pill.NotCurrentlySupported { background: var(--red-soft); color: var(--red); }
+.pill.NoAction { background: #edf6ed; color: #2d6a2d; }
+.feature-guidance { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; margin-top: 4px; color: var(--ink-soft); font-size: .74rem; line-height: 1.4; }
+.doc-link { color: var(--brand); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.doc-link:hover { text-decoration: underline; }
 
 /* Step + gap lists */
 .step-list, .gap-list { list-style: none; margin: 0; padding: 0; }

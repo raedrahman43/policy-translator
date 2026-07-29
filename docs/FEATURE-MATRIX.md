@@ -48,7 +48,7 @@ pie showData
 | `global_token_directoryRead` | Guided manual | Manual | — |
 | `global_token_directoryWrite` | Guided manual | Manual | — |
 | `global_token_encryption` | Guided manual | Manual | — |
-| `global_token_externalClaims` | Automated | Automated; live validation required | `01-create-native-app.ps1`, `08-claims-mapping-policy.ps1` |
+| `global_token_externalClaims` | Automated | Partial automation with required follow-up | `01-create-native-app.ps1`, `08-claims-mapping-policy.ps1` |
 | `global_token_lifetimeManagement` | No generated action | Platform/default behavior | — |
 | `global_token_passthroughNoDirectory` | Guided manual | Manual | — |
 | `global_token_perAppClaimsFilter` | Guided manual | Manual | — |

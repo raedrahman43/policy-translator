@@ -10,7 +10,10 @@ export type ExternalIdAvailability =
   | "NeedsExtensions"
   | "NotAvailable"
   | "DifferentApproach"
-  | "Partial";
+  | "Partial"
+  | "RequiresCustomDevelopment"
+  | "ArchitectureIncompatible"
+  | "NotCurrentlySupported";
 
 export type ReadinessScore = "High" | "Medium" | "Low";
 
@@ -20,14 +23,20 @@ export interface AnalysisFeature {
   reason: string;
   recommendation: string;
   externalIdAvailability: ExternalIdAvailability;
+  notes?: string;
+  docLink?: string;
 }
 
 export interface MigrationSummary {
   readinessScore: ReadinessScore;
   totalFeaturesDetected: number;
-  availableInExternalId: number;
-  onRoadmap: number;
-  needsExtensions: number;
+  availableInExternalId?: number;
+  available?: number;
+  onRoadmap?: number;
+  needsExtensions?: number;
+  requiresCustomDevelopment?: number;
+  notCurrentlySupported?: number;
+  architectureIncompatible?: number;
   migrationBlockers: string[];
   migrationWarnings: string[];
   quickWins: string[];
@@ -37,7 +46,7 @@ export interface MigrationSummary {
 export interface AnalyzerOutput {
   policyName: string;
   features: AnalysisFeature[];
-  migrationSummary: MigrationSummary;
+  migrationSummary?: MigrationSummary;
 }
 
 // --- Translator output types ---

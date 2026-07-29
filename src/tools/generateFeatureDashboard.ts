@@ -92,8 +92,11 @@ function classify(feature: string): DashboardRow {
       bucket: "Automated",
       steps: kinds,
       scripts: kinds.map(filenameForStep),
-      verification: weakestVerification(kinds),
-      note: result.steps.map((step) => step.reason).join("; "),
+      verification: result.gapReport ? "Partial automation with required follow-up" : weakestVerification(kinds),
+      note: [
+        result.steps.map((step) => step.reason).join("; "),
+        result.gapReport?.recommendation,
+      ].filter(Boolean).join("; "),
     };
   }
   if (result.gapReport || result.category === "gap") {

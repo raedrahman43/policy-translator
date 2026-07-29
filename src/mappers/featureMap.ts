@@ -41,6 +41,9 @@ export interface GapEntry {
   recommendation: string;
   effort: string;
   workaround?: string;
+  notes?: string;
+  docLink?: string;
+  availability?: AnalysisFeature["externalIdAvailability"];
 }
 
 export type MappingCategory =
@@ -417,6 +420,28 @@ const FEATURE_MAP: Record<string, FeatureMapper> = {
         reason: "global_token_externalClaims uses a claims mapping policy to emit custom claims in the token",
       },
     ],
+    gapReport: {
+      feature: feature.name,
+      reason:
+        "Claims mapping can emit directory-backed attributes, but custom extension attributes need their resolved External ID directory IDs and runtime data from external APIs requires a custom claims provider.",
+      recommendation:
+        "Use the generated claims mapping policy for directory-backed claims. Resolve any custom attribute IDs after creation, and use an OnTokenIssuanceStart custom authentication extension for claims fetched from external systems. Compare the final External ID token with the source B2C token.",
+      effort: "Partial automation with custom development when claims come from external systems",
+    },
+  }),
+
+  global_token_claimsTransformation: (feature) => ({
+    featureName: feature.name,
+    category: "gap",
+    steps: [],
+    gapReport: {
+      feature: feature.name,
+      reason:
+        "B2C claims-transformation chains cannot be translated safely into a declarative claims mapping policy because they can contain ordering, conditional, string, collection, and validation logic.",
+      recommendation:
+        "Reimplement required runtime transformations in an appropriate custom authentication extension, commonly OnTokenIssuanceStart for token enrichment or OnAttributeCollectionSubmit for sign-up validation. Keep simple renames as claims mappings.",
+      effort: "Custom development and token comparison",
+    },
   }),
 
   // ─── Noops: features already handled by External ID by default ────
@@ -558,27 +583,40 @@ function coverageGapEntry(feature: AnalysisFeature): GapEntry {
 export function mapFeatureToExternalId(feature: AnalysisFeature): MappingResult | null {
   const mapper = FEATURE_MAP[feature.name];
   if (mapper) {
-    return mapper(feature);
+    return addAnalyzerGuidance(mapper(feature), feature);
   }
 
   if (feature.externalIdAvailability !== "Available") {
-    return {
+    return addAnalyzerGuidance({
       featureName: feature.name,
       category: "gap",
       steps: [],
       gapReport: genericGapEntry(feature),
-    };
+    }, feature);
   }
 
   // Available in External ID but this tool has no mapper for it yet. Do NOT
   // silently drop it: surface it in the gap report so the customer sees it was
   // detected and needs manual configuration. Warn for developer visibility.
   console.warn(`⚠️  No mapper for "${feature.name}" (Available) — routed to gap report for manual configuration`);
-  return {
+  return addAnalyzerGuidance({
     featureName: feature.name,
     category: "gap",
     steps: [],
     gapReport: coverageGapEntry(feature),
+  }, feature);
+}
+
+function addAnalyzerGuidance(result: MappingResult, feature: AnalysisFeature): MappingResult {
+  if (!result.gapReport) return result;
+  return {
+    ...result,
+    gapReport: {
+      ...result.gapReport,
+      availability: feature.externalIdAvailability,
+      ...(feature.notes ? { notes: feature.notes } : {}),
+      ...(feature.docLink ? { docLink: feature.docLink } : {}),
+    },
   };
 }
 

@@ -1,0 +1,159 @@
+{
+  "policyName": "B2C_1A_CheckBoxTest",
+  "features": [
+    {
+      "name": "signIn_idp_customOidc",
+      "description": "Custom OIDC identity provider",
+      "reason": "Identity provider detected: JWT Issuer (OpenIdConnect)",
+      "recommendation": "Configure as generic OIDC provider in External ID.",
+      "notes": "Any OIDC-compliant IdP; configure discovery endpoint and client credentials.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-custom-oidc-federation-customers",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_otp_email",
+      "description": "MFA via email OTP",
+      "reason": "Email OTP technical profile detected",
+      "recommendation": "Use built-in email OTP MFA in External ID.",
+      "notes": "Works as primary or secondary authentication; custom email delivery can use OnOtpSend.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/external-id/customers/concept-authentication-methods-customers",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_claimsTransformation",
+      "description": "String claims transformations",
+      "reason": "String transformation methods detected (FormatStringClaim, StringReplace, etc.)",
+      "recommendation": "Move required runtime logic into custom authentication extensions.",
+      "notes": "Simple renames can use claims mapping; transformation chains need custom development.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/identity-platform/custom-extension-overview",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_externalClaims",
+      "description": "Custom token claims",
+      "reason": "Custom or extension claims in RelyingParty output",
+      "recommendation": "Use claims mapping or a custom claims provider.",
+      "notes": "Use OnTokenIssuanceStart to fetch claims from external APIs and add them to the token.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/identity-platform/custom-extension-overview",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_ux_advancedUiCustomization",
+      "description": "Custom HTML/CSS page templates",
+      "reason": "11 content definitions detected",
+      "recommendation": "External ID uses Company Branding and CSS; use Native Auth when full UI control is required.",
+      "notes": "No B2C-style HTML template injection; use the Native Auth SDK for full UI ownership.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/identity-platform/concept-native-authentication",
+      "externalIdAvailability": "RequiresCustomDevelopment"
+    },
+    {
+      "name": "global_ux_localization",
+      "description": "Multi-language localization",
+      "reason": "Localization content definitions detected",
+      "recommendation": "Configure supported language customizations in External ID.",
+      "notes": "Use browser-language detection and localized Company Branding or user-flow labels.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-customize-languages-customers",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_ux_tenantBranding",
+      "description": "Tenant branding via content definitions",
+      "reason": "B2C built-in branding was detected",
+      "recommendation": "Use Company Branding in External ID.",
+      "notes": "Logo, background, colors, and footer links apply across the external tenant.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-customize-branding-customers",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_infra_orchestrationLinear",
+      "description": "Linear user journey flow",
+      "reason": "One linear user journey detected",
+      "recommendation": "Use an External ID user flow.",
+      "notes": "Sequential collect, validate, and issue behavior aligns with External ID user flows.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-user-flow-sign-up-sign-in-customers",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_lifetimeManagement",
+      "description": "Token lifetime configuration",
+      "reason": "Relying-party lifetime configuration detected",
+      "recommendation": "Review supported token lifetime policies in External ID.",
+      "notes": "Validate access, refresh, and session lifetime requirements per application.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/identity-platform/configurable-token-lifetimes",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "signIn_session_lifecycleManagement",
+      "description": "SSO configuration",
+      "reason": "SSO and session management configuration detected",
+      "recommendation": "Configure supported session behavior in External ID.",
+      "notes": "Review application token and Conditional Access session policies.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/identity-platform/configurable-token-lifetimes",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_refreshToken",
+      "description": "Refresh token support",
+      "reason": "JWT issuer refresh-token capability detected",
+      "recommendation": "Use standard OAuth 2.0 refresh tokens in External ID.",
+      "notes": "Validate revocation and application session behavior.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/identity-platform/configurable-token-lifetimes",
+      "externalIdAvailability": "Available"
+    },
+    {
+      "name": "global_token_passthroughNoDirectory",
+      "description": "Token passthrough without a directory user",
+      "reason": "The user journey issues tokens without a directory-classified technical profile.",
+      "recommendation": "Redesign the journey because External ID requires a directory user object.",
+      "notes": "There is no direct directory-less token passthrough equivalent.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/identity-platform/custom-extension-overview",
+      "externalIdAvailability": "ArchitectureIncompatible"
+    },
+    {
+      "name": "passwordReset_security_passwordComplexity",
+      "description": "Custom password complexity rules",
+      "reason": "Password predicate validation detected in the claims schema.",
+      "recommendation": "Review the requirement against External ID platform-enforced password policy.",
+      "notes": "Custom password regular expressions are not configurable.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/identity/authentication/concept-password-ban-bad",
+      "externalIdAvailability": "NotCurrentlySupported"
+    },
+    {
+      "name": "signIn_security_preventDisabledSocialLogon",
+      "description": "Prevent disabled-account sign-in",
+      "reason": "An accountEnabled check was detected in the sign-in orchestration.",
+      "recommendation": "Confirm the target platform behavior for disabled user objects.",
+      "notes": "The Analyzer suggested validating accountEnabled before token issuance.",
+      "docLink": "https://learn.microsoft.com/en-us/entra/external-id/customers/concept-custom-extensions",
+      "externalIdAvailability": "RequiresCustomDevelopment"
+    }
+  ],
+  "migrationSummary": {
+    "readinessScore": "Medium",
+    "totalFeaturesDetected": 14,
+    "available": 10,
+    "requiresCustomDevelopment": 2,
+    "notCurrentlySupported": 1,
+    "architectureIncompatible": 1,
+    "migrationBlockers": [],
+    "migrationWarnings": [
+      "global_ux_advancedUiCustomization requires custom development",
+      "global_token_passthroughNoDirectory is architecturally incompatible with External ID",
+      "passwordReset_security_passwordComplexity is not currently supported in External ID",
+      "signIn_security_preventDisabledSocialLogon requires custom development"
+    ],
+    "quickWins": [
+      "signIn_idp_customOidc",
+      "signIn_otp_email",
+      "global_token_claimsTransformation",
+      "global_token_externalClaims",
+      "global_ux_localization",
+      "global_ux_tenantBranding",
+      "global_infra_orchestrationLinear",
+      "global_token_lifetimeManagement",
+      "signIn_session_lifecycleManagement",
+      "global_token_refreshToken"
+    ],
+    "overallRecommendation": "This policy can be migrated with moderate effort. Ten of fourteen features are available, but some require alternative approaches or custom extensions."
+  }
+}

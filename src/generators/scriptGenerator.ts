@@ -257,8 +257,17 @@ export function injectCustomAttributeStep(kinds: StepKind[], context?: PolicyCon
 
 function generateGapEntry(gap: GapEntry): string {
   let md = `### ${gap.feature}\n\n`;
+  if (gap.availability) {
+    md += `**Migration classification:** ${gap.availability}\n\n`;
+  }
   md += `**Why can't this be automated?**\n${gap.reason}\n\n`;
   md += `**Recommendation:**\n${gap.recommendation}\n\n`;
+  if (gap.notes) {
+    md += `**Analyzer guidance:**\n${gap.notes}\n\n`;
+  }
+  if (gap.docLink) {
+    md += `**Official guidance:** [Microsoft Learn](${gap.docLink})\n\n`;
+  }
   md += `**Estimated Effort:** ${gap.effort}\n\n`;
   if (gap.workaround) {
     md += `**Workaround:**\n${gap.workaround}\n\n`;

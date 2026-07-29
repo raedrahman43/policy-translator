@@ -92,6 +92,23 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+function safeDocLink(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:" && ["learn.microsoft.com", "aka.ms"].includes(url.hostname.toLowerCase())
+      ? url.href
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+function guidanceHtml(note, docLink) {
+  const link = safeDocLink(docLink);
+  if (!note && !link) return "";
+  return `<div class="feature-guidance">${note ? `<span>${escapeHtml(note)}</span>` : ""}${link ? `<a class="doc-link" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">Microsoft Learn</a>` : ""}</div>`;
+}
+
 // ─── Step 1: Upload ───────────────────────────────────────────────────────────
 
 const dropzone = $("#dropzone");
@@ -203,7 +220,7 @@ function renderReview(data) {
   const tbody = $("#featureTable tbody");
   tbody.innerHTML = data.features.map((f) => `
     <tr>
-      <td><span class="feat-name">${escapeHtml(f.name)}</span><br><span class="muted small">${escapeHtml(f.description)}</span></td>
+      <td><span class="feat-name">${escapeHtml(f.name)}</span><br><span class="muted small">${escapeHtml(f.description)}</span>${guidanceHtml(f.guidance, f.docLink)}</td>
       <td><span class="pill ${f.status}">${escapeHtml(f.statusLabel)}</span></td>
     </tr>
   `).join("");
@@ -226,7 +243,7 @@ function renderReview(data) {
     gapList.innerHTML = `<li class="empty">No manual work — everything detected is automatable.</li>`;
   } else {
     gapList.innerHTML = data.gaps.map((g) => `
-      <li><strong>${escapeHtml(g.feature)}</strong>${escapeHtml(g.recommendation)}</li>
+      <li><strong>${escapeHtml(g.feature)}</strong>${escapeHtml(g.recommendation)}${guidanceHtml(g.notes, g.docLink)}</li>
     `).join("");
   }
 

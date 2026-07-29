@@ -461,6 +461,39 @@ function loadDiskFixtures(): { label: string; json: unknown }[] {
   return out;
 }
 
+function runAnalyzerGuidanceCompatibility(): void {
+  const name = "[compat] enriched Analyzer guidance";
+  const file = path.join(__dirname, "..", "fixtures", "analyzer-output-enriched.json");
+  const raw = JSON.parse(fs.readFileSync(file, "utf-8"));
+  const validation = validateAndNormalize(raw);
+
+  check(name, validation.valid, "enriched Analyzer fixture did not validate");
+  check(name, validation.warnings.length === 0, `unexpected warnings: ${validation.warnings.map((w) => w.message).join(" | ")}`);
+
+  const customUi = validation.features.find((feature) => feature.name === "global_ux_advancedUiCustomization");
+  check(name, customUi?.externalIdAvailability === "RequiresCustomDevelopment", "custom-development status was not preserved");
+  check(name, Boolean(customUi?.notes?.includes("Native Auth SDK")), "Analyzer notes were not preserved");
+  check(name, customUi?.docLink?.startsWith("https://learn.microsoft.com/") === true, "Microsoft Learn link was not preserved");
+
+  const incompatible = validation.features.find((feature) => feature.name === "global_token_passthroughNoDirectory");
+  check(name, incompatible?.externalIdAvailability === "ArchitectureIncompatible", "architecture-incompatible status was not preserved");
+
+  const unsupported = validation.features.find((feature) => feature.name === "passwordReset_security_passwordComplexity");
+  check(name, unsupported?.externalIdAvailability === "NotCurrentlySupported", "not-currently-supported status was not preserved");
+
+  const generated = generate(raw, {});
+  check(name, !("error" in generated), "enriched Analyzer fixture failed generation");
+  if (!("error" in generated)) {
+    const report = generated.output.gapReport || "";
+    check(name, report.includes("Migration classification:** RequiresCustomDevelopment"), "gap report omitted the exact classification");
+    check(name, report.includes("Analyzer guidance:"), "gap report omitted Analyzer guidance");
+    check(name, report.includes("[Microsoft Learn](https://learn.microsoft.com/"), "gap report omitted the official link");
+    check(name, report.includes("OnTokenIssuanceStart"), "external claims did not surface custom-extension guidance");
+  }
+
+  if (!failures.some((failure) => failure.case === name)) passCount++;
+}
+
 // ─── Full Analyzer coverage (every feature key the Analyzer can emit) ─────────
 //
 // The file analyzer-feature-keys.json is the complete list of feature keys from
@@ -658,6 +691,11 @@ function main(): void {
     const ok = failures.length === before;
     console.log(`  ${ok ? "PASS" : "FAIL"}  [disk] ${label}`);
   }
+
+  console.log("\nEnriched Analyzer metadata compatibility:");
+  const compatBefore = failures.length;
+  runAnalyzerGuidanceCompatibility();
+  console.log(`  ${failures.length === compatBefore ? "PASS" : "FAIL"}  enriched statuses, notes, links, and gap guidance`);
 
   console.log("\nFull Analyzer coverage (every feature key, robustness + accounting):");
   const covBefore = failures.length;

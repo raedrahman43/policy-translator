@@ -163,7 +163,7 @@
       "steps": [],
       "scripts": [],
       "verification": "Manual",
-      "note": "Follow the documented External ID migration path. (Detected as available in External ID, but this tool does not generate a script for it yet — configure manually.)"
+      "note": "Reimplement required runtime transformations in an appropriate custom authentication extension, commonly OnTokenIssuanceStart for token enrichment or OnAttributeCollectionSubmit for sign-up validation. Keep simple renames as claims mappings."
     },
     {
       "feature": "global_token_customIssuer",
@@ -216,8 +216,8 @@
         "01-create-native-app.ps1",
         "08-claims-mapping-policy.ps1"
       ],
-      "verification": "Automated; live validation required",
-      "note": "Custom token claims require an app registration and service principal; global_token_externalClaims uses a claims mapping policy to emit custom claims in the token"
+      "verification": "Partial automation with required follow-up",
+      "note": "Custom token claims require an app registration and service principal; global_token_externalClaims uses a claims mapping policy to emit custom claims in the token; Use the generated claims mapping policy for directory-backed claims. Resolve any custom attribute IDs after creation, and use an OnTokenIssuanceStart custom authentication extension for claims fetched from external systems. Compare the final External ID token with the source B2C token."
     },
     {
       "feature": "global_token_lifetimeManagement",

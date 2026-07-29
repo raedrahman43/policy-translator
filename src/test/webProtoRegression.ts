@@ -102,6 +102,61 @@ async function testAnalyzeContext(): Promise<void> {
   if (!phoneResult.ok) throw new Error("Phone attribute fixture unexpectedly failed.");
   assert(phoneResult.body.context.attributes.some((attribute) => attribute.id === "mobilePhone"));
   assert(!phoneResult.body.context.attributes.some((attribute) => attribute.id === "phoneNumber"));
+
+  const enrichedResult = analyze({
+    policyName: "B2C_1A_EnrichedMetadata",
+    features: [
+      {
+        name: "global_ux_advancedUiCustomization",
+        reason: "Custom HTML detected",
+        recommendation: "Use branding and Native Auth.",
+        notes: "Use the Native Auth SDK when full UI ownership is required.",
+        docLink: "https://learn.microsoft.com/en-us/entra/identity-platform/concept-native-authentication",
+        externalIdAvailability: "RequiresCustomDevelopment",
+      },
+      {
+        name: "global_token_externalClaims",
+        reason: "External token claims detected",
+        recommendation: "Use claims mapping or a custom claims provider.",
+        notes: "Use OnTokenIssuanceStart to fetch claims from an external API.",
+        docLink: "https://learn.microsoft.com/en-us/entra/identity-platform/custom-extension-overview",
+        externalIdAvailability: "Available",
+      },
+      {
+        name: "signIn_security_preventDisabledSocialLogon",
+        reason: "accountEnabled check detected",
+        recommendation: "Block disabled users.",
+        notes: "Analyzer suggested a custom extension.",
+        docLink: "https://learn.microsoft.com/en-us/entra/external-id/customers/concept-custom-extensions",
+        externalIdAvailability: "RequiresCustomDevelopment",
+      },
+    ],
+    migrationSummary: {
+      readinessScore: "Medium",
+      totalFeaturesDetected: 3,
+      available: 1,
+      requiresCustomDevelopment: 2,
+      migrationBlockers: [],
+      migrationWarnings: [],
+      quickWins: ["global_token_externalClaims"],
+      overallRecommendation: "Moderate effort.",
+    },
+  });
+  assert.equal(enrichedResult.ok, true);
+  if (!enrichedResult.ok) throw new Error("Enriched metadata fixture unexpectedly failed.");
+  assert.equal(enrichedResult.body.readiness.score, "Medium");
+  const customUi = enrichedResult.body.features.find((feature) => feature.name === "global_ux_advancedUiCustomization");
+  assert.equal(customUi?.status, "RequiresCustomDevelopment");
+  assert(customUi?.guidance.includes("Native Auth SDK"));
+  assert(customUi?.docLink?.includes("learn.microsoft.com"));
+  const externalClaims = enrichedResult.body.features.find((feature) => feature.name === "global_token_externalClaims");
+  assert.equal(externalClaims?.status, "Partial");
+  const externalClaimsGap = enrichedResult.body.gaps.find((gap) => gap.feature === "global_token_externalClaims");
+  assert(externalClaimsGap?.notes?.includes("OnTokenIssuanceStart"));
+  assert(externalClaimsGap?.docLink?.includes("learn.microsoft.com"));
+  const disabledAccount = enrichedResult.body.features.find((feature) => feature.name === "signIn_security_preventDisabledSocialLogon");
+  assert.equal(disabledAccount?.status, "NoAction");
+  assert(disabledAccount?.guidance.includes("natively blocks disabled accounts"));
 }
 
 function testBrandingIntent(): void {

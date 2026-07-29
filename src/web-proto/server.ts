@@ -24,6 +24,7 @@ import { injectCustomAttributeStep } from "../generators/scriptGenerator";
 import { manualRecreationSteps } from "../generators/manualRecreation";
 import { deriveRequiredInputs } from "../web/inputRequirements";
 import { generate } from "../web/server";
+import { buildFeatureView, buildReadiness } from "../web/analyzerPresentation";
 import { startDeviceCode, pollForToken } from "./graphClient";
 import { executeApply, scopesForKinds, ApplyConfig } from "./graphExecutor";
 import { readSourceBranding, ImportedBranding } from "./branding";
@@ -96,15 +97,6 @@ app.use((req, _res, next) => {
   }
   next();
 });
-
-const STATUS_LABELS: Record<string, string> = {
-  Available: "Supported",
-  Partial: "Partially available",
-  NeedsExtensions: "Needs custom extensions",
-  DifferentApproach: "Different approach",
-  OnRoadmap: "On roadmap",
-  NotAvailable: "Not yet available",
-};
 
 interface AnalyzerBranding {
   hasSignal: boolean;
@@ -180,25 +172,8 @@ function analyze(rawJson: unknown) {
   const context = extractPolicyContext(policyName, features);
   const { mapped, unmapped } = mapAllFeatures(features);
 
-  const byStatus: Record<string, number> = {};
-  for (const f of features) byStatus[f.externalIdAvailability] = (byStatus[f.externalIdAvailability] || 0) + 1;
-  const available = byStatus["Available"] || 0;
-  const total = features.length;
-  const readinessPct = total > 0 ? Math.round((available / total) * 100) : 0;
-  const readinessScore = readinessPct >= 70 ? "High" : readinessPct >= 40 ? "Medium" : "Low";
-
-  const mappingByFeature = new Map(mapped.map((result) => [result.featureName, result]));
-  const featureView = features.map((f) => {
-    const mapping = mappingByFeature.get(f.name);
-    const isManual = Boolean(mapping?.gapReport);
-    return {
-      name: f.name,
-      description: f.description || "",
-      status: isManual ? "DifferentApproach" : f.externalIdAvailability,
-      statusLabel: isManual ? "Manual configuration" : (STATUS_LABELS[f.externalIdAvailability] || f.externalIdAvailability),
-      externalIdAvailability: f.externalIdAvailability,
-    };
-  });
+  const readiness = buildReadiness(rawJson, features);
+  const featureView = buildFeatureView(features, mapped);
 
   // StepKind → the features that requested it (dedup)
   const stepReasons = new Map<string, string[]>();
@@ -220,7 +195,15 @@ function analyze(rawJson: unknown) {
     .map((r) => {
       const g = r.gapReport!;
       const rec = manualRecreationSteps(g.feature, g.reason, g.recommendation);
-      return { feature: g.feature, reason: g.reason, recommendation: g.recommendation, manual: rec };
+      return {
+        feature: g.feature,
+        reason: g.reason,
+        recommendation: g.recommendation,
+        availability: g.availability,
+        notes: g.notes,
+        docLink: g.docLink,
+        manual: rec,
+      };
     });
 
   const requiredInputs = deriveRequiredInputs(mapped, [
@@ -237,7 +220,7 @@ function analyze(rawJson: unknown) {
       valid: true,
       warnings: validation.warnings,
       policyName,
-      readiness: { score: readinessScore, percent: readinessPct, total, available, needsWork: total - available, byStatus },
+      readiness,
       context: {
         appName: context.appName,
         flowName: context.flowName,

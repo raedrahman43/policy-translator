@@ -135,6 +135,23 @@ function toast(msg) {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
+
+function safeDocLink(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:" && ["learn.microsoft.com", "aka.ms"].includes(url.hostname.toLowerCase())
+      ? url.href
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+function guidanceHtml(note, docLink) {
+  const link = safeDocLink(docLink);
+  if (!note && !link) return "";
+  return `<div class="feature-guidance">${note ? `<span>${escapeHtml(note)}</span>` : ""}${link ? `<a class="doc-link" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">Microsoft Learn</a>` : ""}</div>`;
+}
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
 let csrfTokenPromise = null;
@@ -249,12 +266,19 @@ function renderReview() {
   ].map((s) => `<div class="stat-card"><div class="num">${s.n}</div><div class="lbl">${s.l}</div></div>`).join("");
 
   const tbody = $("#featureTable tbody");
-  tbody.innerHTML = a.features.map((f) =>
-    `<tr><td>${escapeHtml(f.name)}</td><td><span class="pill ${f.status}">${escapeHtml(f.statusLabel)}</span></td></tr>`).join("");
+  tbody.innerHTML = a.features.map((f) => `
+    <tr>
+      <td>
+        <span class="feat-name">${escapeHtml(f.name)}</span>
+        ${f.description ? `<div class="muted small">${escapeHtml(f.description)}</div>` : ""}
+        ${guidanceHtml(f.guidance, f.docLink)}
+      </td>
+      <td><span class="pill ${f.status}">${escapeHtml(f.statusLabel)}</span></td>
+    </tr>`).join("");
 
   $("#gapCount").textContent = a.gaps.length ? `(${a.gaps.length})` : "(none)";
   $("#gapList").innerHTML = a.gaps.length
-    ? a.gaps.map((g) => `<li><strong>${escapeHtml(featureLabel(g.feature))}</strong><span class="muted small"> — ${escapeHtml(g.recommendation)}</span></li>`).join("")
+    ? a.gaps.map((g) => `<li><strong>${escapeHtml(featureLabel(g.feature))}</strong><span class="muted small"> — ${escapeHtml(g.recommendation)}</span>${guidanceHtml(g.notes, g.docLink)}</li>`).join("")
     : `<li class="muted">Everything detected maps cleanly. Nothing needs manual work.</li>`;
 }
 $("#backTo1").addEventListener("click", () => showStep(1));
@@ -700,6 +724,9 @@ function renderApplyGaps(result) {
   const analysisGaps = (state.analysis?.gaps || []).map((g) => ({
     label: featureLabel(g.feature),
     reason: g.recommendation,
+    availability: g.availability,
+    notes: g.notes,
+    docLink: g.docLink,
     manual: g.manual || null,
   }));
   const manual = (result.manualFollowUps || []).map((m) => ({
@@ -722,10 +749,11 @@ function renderApplyGaps(result) {
   $("#applyGapList").innerHTML = items
     .map((x) => {
       const head = `<strong>${escapeHtml(x.label)}</strong>${x.reason ? `<span class="muted small"> — ${escapeHtml(x.reason)}</span>` : ""}`;
-      if (!x.manual || !Array.isArray(x.manual.steps) || !x.manual.steps.length) return `<li>${head}</li>`;
+      const guidance = guidanceHtml(x.notes, x.docLink);
+      if (!x.manual || !Array.isArray(x.manual.steps) || !x.manual.steps.length) return `<li>${head}${guidance}</li>`;
       const badge = x.manual.recreatable ? "" : ` <span class="gap-tag">no direct equivalent</span>`;
       const steps = x.manual.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join("");
-      return `<li>${head}${badge}
+      return `<li>${head}${badge}${guidance}
         <details class="gap-steps">
           <summary>How to recreate this manually in External ID</summary>
           <p class="muted small">${escapeHtml(x.manual.note || "")}</p>
@@ -757,7 +785,10 @@ function buildFinalGapReport(items) {
 
   items.forEach((item) => {
     lines.push(`## ${markdownLine(item.label)}`, "");
+    if (item.availability) lines.push(`**Migration classification:** ${markdownLine(item.availability)}`, "");
     if (item.reason) lines.push(`**Reason:** ${markdownLine(item.reason)}`, "");
+    if (item.notes) lines.push(`**Analyzer guidance:** ${markdownLine(item.notes)}`, "");
+    if (safeDocLink(item.docLink)) lines.push(`**Official guidance:** ${safeDocLink(item.docLink)}`, "");
     if (item.manual) {
       lines.push(`**Recreatable:** ${item.manual.recreatable ? "Yes" : "No direct equivalent"}`, "");
       if (item.manual.note) lines.push(markdownLine(item.manual.note), "");

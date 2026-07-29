@@ -42,6 +42,12 @@ const STATUS_SYNONYMS: Record<string, ExternalIdAvailability> = {
   "notavailable": "NotAvailable",
   "differentapproach": "DifferentApproach",
   "partial": "Partial",
+  "requirescustomdevelopment": "RequiresCustomDevelopment",
+  "requires custom development": "RequiresCustomDevelopment",
+  "architectureincompatible": "ArchitectureIncompatible",
+  "architecture incompatible": "ArchitectureIncompatible",
+  "notcurrentlysupported": "NotCurrentlySupported",
+  "not currently supported": "NotCurrentlySupported",
 
   // Synonyms from the 166-feature tracking doc
   "ready to migrate": "Available",
@@ -202,6 +208,21 @@ export function validateAndNormalize(raw: unknown): ValidationResult {
     if (typeof feat.description === "string") {
       validFeature.description = feat.description;
     }
+    if (typeof feat.notes === "string" && feat.notes.trim()) {
+      validFeature.notes = feat.notes.trim();
+    }
+    if (typeof feat.docLink === "string" && feat.docLink.trim()) {
+      const docLink = normalizeDocumentationLink(feat.docLink);
+      if (docLink) {
+        validFeature.docLink = docLink;
+      } else {
+        warnings.push({
+          field: `${prefix}.docLink`,
+          message: `Documentation link for "${featureKey}" must use HTTPS and point to learn.microsoft.com or aka.ms. The link was ignored.`,
+          severity: "warning",
+        });
+      }
+    }
 
     // Warn on missing optional fields
     if (!feat.reason) {
@@ -277,6 +298,7 @@ function normalizeAvailability(status: string): ExternalIdAvailability | null {
   // Direct match (already canonical)
   const canonical: ExternalIdAvailability[] = [
     "Available", "OnRoadmap", "NeedsExtensions", "NotAvailable", "DifferentApproach", "Partial",
+    "RequiresCustomDevelopment", "ArchitectureIncompatible", "NotCurrentlySupported",
   ];
   if (canonical.includes(trimmed as ExternalIdAvailability)) {
     return trimmed as ExternalIdAvailability;
@@ -290,6 +312,15 @@ function normalizeAvailability(status: string): ExternalIdAvailability | null {
 
   // Fuzzy match: check if the status contains a known keyword
   if (lower.includes("available") && !lower.includes("not")) return "Available";
+  if (lower.includes("requirescustomdevelopment") || (lower.includes("custom") && lower.includes("development"))) {
+    return "RequiresCustomDevelopment";
+  }
+  if (lower.includes("architectureincompatible") || (lower.includes("architecture") && lower.includes("incompatible"))) {
+    return "ArchitectureIncompatible";
+  }
+  if (lower.includes("notcurrentlysupported") || (lower.includes("not") && lower.includes("currently") && lower.includes("supported"))) {
+    return "NotCurrentlySupported";
+  }
   if (lower.includes("roadmap")) return "OnRoadmap";
   if (lower.includes("partial")) return "Partial";
   if (lower.includes("different")) return "DifferentApproach";
@@ -297,6 +328,19 @@ function normalizeAvailability(status: string): ExternalIdAvailability | null {
   if (lower.includes("extension") || lower.includes("alternative")) return "NeedsExtensions";
 
   return null;
+}
+
+function normalizeDocumentationLink(value: string): string | null {
+  try {
+    const url = new URL(value.trim());
+    const host = url.hostname.toLowerCase();
+    if (url.protocol !== "https:" || (host !== "learn.microsoft.com" && host !== "aka.ms")) {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 // ─── Helper ─────────────────────────────────────────────────────────────────

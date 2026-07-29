@@ -56,6 +56,12 @@ The review page separates:
 - guided manual work;
 - and capabilities with no direct equivalent.
 
+Newer Analyzer exports can also include an explanatory note, an official Microsoft
+Learn link, and more specific classifications such as custom development required,
+architecture incompatible, or not currently supported. Policy Translator preserves
+these details in the existing feature review and gap report rather than collapsing
+them into a generic warning.
+
 ## 4. Choose the migration approach
 
 ### Move my policy as-is
