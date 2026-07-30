@@ -126,7 +126,10 @@ Then open <http://localhost:4000>.
   excluded by `.gitignore`.
 - Logo downloads enforce HTTPS, image size/type limits, redirect limits, and private
   network blocking.
-- There is no runtime product telemetry. See [docs/PRIVACY.md](docs/PRIVACY.md).
+- Runtime telemetry is inactive unless an official build configures the optional Azure
+  receiver. Configured builds expose an opt-out and send only allowlisted anonymous
+  funnel/error metrics. See [docs/PRIVACY.md](docs/PRIVACY.md) and
+  [docs/TELEMETRY.md](docs/TELEMETRY.md).
 
 ## Development
 
@@ -155,6 +158,7 @@ See:
 - [docs/ADDING-A-FEATURE.md](docs/ADDING-A-FEATURE.md)
 - [docs/PREREQUISITES.md](docs/PREREQUISITES.md)
 - [docs/TESTING.md](docs/TESTING.md)
+- [docs/TELEMETRY.md](docs/TELEMETRY.md)
 - [SECURITY.md](SECURITY.md)
 - [SUPPORT.md](SUPPORT.md)
 - [GOVERNANCE.md](GOVERNANCE.md)

@@ -29,11 +29,29 @@ import { startDeviceCode, pollForToken } from "./graphClient";
 import { executeApply, scopesForKinds, ApplyConfig } from "./graphExecutor";
 import { readSourceBranding, ImportedBranding } from "./branding";
 import { deepRepairMojibake } from "./textFix";
+import {
+  bucketCount,
+  bucketDuration,
+  categorizeTelemetryError,
+  TelemetryEventName,
+  telemetryAllowedForRequest,
+  telemetryClient,
+} from "../telemetry/telemetryClient";
 
 const app = express();
 const PORT = process.env.PROTO_PORT ? Number(process.env.PROTO_PORT) : 4001;
 const LOOPBACK_HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`]);
 const csrfTokens = new Map<string, number>();
+let appStartedRecorded = false;
+
+function recordTelemetry(
+  req: Request,
+  eventName: TelemetryEventName,
+  properties: Record<string, unknown> = {},
+): void {
+  if (!telemetryAllowedForRequest(req.headers["x-policy-translator-telemetry"])) return;
+  void telemetryClient.emit(eventName, properties);
+}
 
 function pruneCsrfTokens() {
   const cutoff = Date.now() - 2 * 60 * 60 * 1000;
@@ -96,6 +114,38 @@ app.use((req, _res, next) => {
     req.body = deepRepairMojibake(req.body);
   }
   next();
+});
+
+app.get("/api/telemetry/status", (_req: Request, res: Response) => {
+  const configured = telemetryClient.isConfigured();
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ configured, enabled: configured && telemetryClient.isEnabled() });
+});
+
+app.post("/api/telemetry/preference", (req: Request, res: Response) => {
+  const enabled = req.body?.enabled !== false;
+  const configured = telemetryClient.isConfigured();
+  const requestEnabled = enabled && telemetryAllowedForRequest(req.headers["x-policy-translator-telemetry"]);
+  if (requestEnabled && configured && telemetryClient.isEnabled() && !appStartedRecorded) {
+    appStartedRecorded = true;
+    recordTelemetry(req, "app_started", { surface: "web-proto" });
+  }
+  res.json({
+    configured,
+    enabled: configured && enabled && telemetryClient.isEnabled(),
+  });
+});
+
+app.post("/api/telemetry/event", (req: Request, res: Response) => {
+  const eventName = String(req.body?.eventName || "");
+  const eventMap: Record<string, { event: TelemetryEventName; property: string }> = {
+    gap_report_previewed: { event: "gap_report_previewed", property: "gapCountBucket" },
+    gap_report_downloaded: { event: "gap_report_downloaded", property: "gapCountBucket" },
+  };
+  const definition = eventMap[eventName];
+  if (!definition) return res.status(400).json({ error: "Unsupported telemetry event." });
+  recordTelemetry(req, definition.event, { [definition.property]: bucketCount(Number(req.body?.count || 0)) });
+  res.status(202).json({ accepted: true });
 });
 
 interface AnalyzerBranding {
@@ -247,11 +297,32 @@ function analyze(rawJson: unknown) {
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
 app.post("/api/analyze", (req: Request, res: Response) => {
+  const startedAt = Date.now();
   try {
     const rawJson = req.body?.json ?? req.body;
     const outcome = analyze(rawJson);
+    if (outcome.ok) {
+      recordTelemetry(req, "analysis_completed", {
+        surface: "web-proto",
+        durationBucket: bucketDuration(Date.now() - startedAt),
+        featureCountBucket: bucketCount(outcome.body.readiness.total),
+        actionCountBucket: bucketCount(outcome.body.steps.length),
+        gapCountBucket: bucketCount(outcome.body.gaps.length),
+      });
+    } else {
+      recordTelemetry(req, "analysis_failed", {
+        surface: "web-proto",
+        durationBucket: bucketDuration(Date.now() - startedAt),
+        errorCategory: "validation",
+      });
+    }
     res.status(outcome.status).json(outcome.body);
   } catch (err) {
+    recordTelemetry(req, "analysis_failed", {
+      surface: "web-proto",
+      durationBucket: bucketDuration(Date.now() - startedAt),
+      errorCategory: categorizeTelemetryError(err),
+    });
     res.status(500).json({ valid: false, errors: [{ field: "server", message: String(err) }] });
   }
 });
@@ -261,6 +332,7 @@ app.post("/api/analyze", (req: Request, res: Response) => {
  * No Microsoft Graph calls are made and no success/resource IDs are fabricated.
  */
 app.post("/api/apply", (req: Request, res: Response) => {
+  const startedAt = Date.now();
   try {
     const selected: string[] = Array.isArray(req.body?.selectedKinds) ? req.body.selectedKinds : [];
     const config = (req.body?.config ?? {}) as Record<string, string>;
@@ -303,7 +375,7 @@ app.post("/api/apply", (req: Request, res: Response) => {
       .filter((k) => ["enable-email-otp", "enable-sms-mfa", "enable-passkey"].includes(k))
       .map((k) => k.replace("enable-", ""));
 
-    res.json({
+    const response = {
       simulated: true,
       appliedAt: now(),
       summary: {
@@ -317,8 +389,18 @@ app.post("/api/apply", (req: Request, res: Response) => {
         branding: { companyName: branding.companyName || config.appName || "Your app", accent: branding.accent || "#0067b8" },
       },
       applied,
+    };
+    recordTelemetry(req, "simulation_completed", {
+      durationBucket: bucketDuration(Date.now() - startedAt),
+      actionCountBucket: bucketCount(selected.length),
+      gapCountBucket: bucketCount(Number(req.body?.gapCount || 0)),
     });
+    res.json(response);
   } catch (err) {
+    recordTelemetry(req, "simulation_failed", {
+      durationBucket: bucketDuration(Date.now() - startedAt),
+      errorCategory: categorizeTelemetryError(err),
+    });
     res.status(500).json({ error: String(err) });
   }
 });
@@ -348,6 +430,7 @@ app.post("/api/scripts", (req: Request, res: Response) => {
   try {
     const built = buildScripts(req);
     if (!built.ok) return res.status(400).json({ errors: built.errors });
+    recordTelemetry(req, "scripts_previewed", { fileCountBucket: bucketCount(built.files.length) });
     res.json({ policyName: built.policyName, files: built.files });
   } catch (err) {
     res.status(500).json({ errors: [{ field: "server", message: String(err) }] });
@@ -362,6 +445,7 @@ app.post("/api/scripts-zip", async (req: Request, res: Response) => {
     const zip = new JSZip();
     for (const f of built.files) zip.file(f.name, f.content);
     const buffer = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+    recordTelemetry(req, "scripts_downloaded", { fileCountBucket: bucketCount(built.files.length) });
     res.attachment(`migration-package-${safeName}.zip`);
     res.setHeader("Content-Type", "application/zip");
     res.send(buffer);
@@ -561,6 +645,8 @@ function missingApplyInputs(selected: string[], config: Record<string, unknown>)
 
 /** Real apply: execute the selected steps against the signed-in tenant. */
 app.post("/api/apply-real", async (req: Request, res: Response) => {
+  const startedAt = Date.now();
+  let applyStarted = false;
   try {
     const sessionId = String(req.body?.sessionId || "");
     const session = authSessions.get(sessionId);
@@ -595,6 +681,10 @@ app.post("/api/apply-real", async (req: Request, res: Response) => {
       : selected;
     const missing = missingApplyInputs(selectedForApply, config);
     if (missing.length) {
+      recordTelemetry(req, "real_apply_failed", {
+        durationBucket: bucketDuration(Date.now() - startedAt),
+        errorCategory: "missing_input",
+      });
       return res.status(400).json({
         error: `Complete the required configuration before applying: ${missing.join(", ")}.`,
       });
@@ -603,8 +693,14 @@ app.post("/api/apply-real", async (req: Request, res: Response) => {
       selectedForApply.includes("create-ca-policy") &&
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(config.caResourceAppId))
     ) {
+      recordTelemetry(req, "real_apply_failed", {
+        durationBucket: bucketDuration(Date.now() - startedAt),
+        errorCategory: "validation",
+      });
       return res.status(400).json({ error: "Conditional Access resource application ID must be a GUID." });
     }
+    applyStarted = true;
+    recordTelemetry(req, "real_apply_started", { actionCountBucket: bucketCount(selectedForApply.length) });
     const { applied, state } = await executeApply(selectedForApply, config, session.accessToken);
 
     const idps = applied
@@ -622,7 +718,7 @@ app.post("/api/apply-real", async (req: Request, res: Response) => {
         manual: manualRecreationSteps(a.kind, a.message || a.label, a.message || "Configure this feature manually in External ID."),
       }));
 
-    res.json({
+    const response = {
       simulated: false,
       appliedAt: new Date().toISOString(),
       summary: {
@@ -641,8 +737,22 @@ app.post("/api/apply-real", async (req: Request, res: Response) => {
       },
       applied,
       manualFollowUps,
+    };
+    recordTelemetry(req, "real_apply_completed", {
+      durationBucket: bucketDuration(Date.now() - startedAt),
+      createdCountBucket: bucketCount(applied.filter((item) => item.status === "created").length),
+      reusedCountBucket: bucketCount(applied.filter((item) => item.status === "reused").length),
+      failedCountBucket: bucketCount(applied.filter((item) => item.status === "failed").length),
+      followUpCountBucket: bucketCount(manualFollowUps.length),
     });
+    res.json(response);
   } catch (err) {
+    if (applyStarted) {
+      recordTelemetry(req, "real_apply_failed", {
+        durationBucket: bucketDuration(Date.now() - startedAt),
+        errorCategory: categorizeTelemetryError(err),
+      });
+    }
     res.status(500).json({ error: String(err) });
   }
 });

@@ -177,7 +177,62 @@ async function apiFetch(url, init = {}) {
   const token = await getCsrfToken();
   const headers = new Headers(init.headers || {});
   headers.set("X-Policy-Translator-CSRF", token);
+  headers.set("X-Policy-Translator-Telemetry", telemetryPreferenceEnabled() ? "on" : "off");
   return fetch(url, { ...init, headers });
+}
+
+const TELEMETRY_PREFERENCE_KEY = "policyTranslator.telemetryEnabled";
+let telemetryPreference = readTelemetryPreference();
+
+function telemetryPreferenceEnabled() {
+  return telemetryPreference;
+}
+
+function readTelemetryPreference() {
+  try {
+    return localStorage.getItem(TELEMETRY_PREFERENCE_KEY) !== "off";
+  } catch {
+    return false;
+  }
+}
+
+function saveTelemetryPreference(enabled) {
+  telemetryPreference = Boolean(enabled);
+  try {
+    localStorage.setItem(TELEMETRY_PREFERENCE_KEY, telemetryPreference ? "on" : "off");
+  } catch {
+    telemetryPreference = false;
+  }
+  return telemetryPreference;
+}
+
+async function syncTelemetryPreference() {
+  const enabled = telemetryPreferenceEnabled();
+  const toggle = $("#telemetryToggle");
+  const status = $("#telemetryStatus");
+  toggle.checked = enabled;
+  try {
+    const res = await apiFetch("/api/telemetry/preference", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    });
+    const data = await res.json();
+    status.textContent = data.configured
+      ? (data.enabled ? "Anonymous metrics are on" : "Anonymous metrics are off")
+      : "Telemetry is inactive in this build";
+  } catch {
+    status.textContent = "Telemetry is unavailable";
+  }
+}
+
+function sendClientTelemetry(eventName, count) {
+  if (!telemetryPreferenceEnabled()) return;
+  void apiFetch("/api/telemetry/event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ eventName, count }),
+  }).catch(() => {});
 }
 
 // Turn a raw feature key (e.g. "global_ux_advancedUiCustomization") into a
@@ -674,7 +729,12 @@ async function runApply() {
   try {
     const res = await apiFetch("/api/apply", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ selectedKinds: orderedKinds, config: state.config, branding: state.branding }),
+      body: JSON.stringify({
+        selectedKinds: orderedKinds,
+        config: state.config,
+        branding: state.branding,
+        gapCount: state.analysis?.gaps?.length || 0,
+      }),
     });
     result = await res.json();
   } catch (err) { toast("Apply failed: " + err.message); return; }
@@ -1178,6 +1238,7 @@ function openGapReportPreview() {
   showScriptFile(0);
   $("#scriptBackdrop").hidden = false;
   $("#scriptCloseX").focus();
+  sendClientTelemetry("gap_report_previewed", state.analysis?.gaps?.length || 0);
 }
 const ICON_DOC = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M4 1.75h4.5L12.25 5.5v8.75H4z"/><path d="M8.25 1.75V5.5h3.75"/></svg>';
 const ICON_SCRIPT = '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4.5l3 3-3 3"/><path d="M8.5 11h4"/></svg>';
@@ -1234,6 +1295,7 @@ function downloadGapReport() {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+  sendClientTelemetry("gap_report_downloaded", state.analysis?.gaps?.length || 0);
 }
 
 $("#scriptDownloadBtn").addEventListener("click", async () => {
@@ -1290,4 +1352,10 @@ const SAMPLE_POLICY = {
   ],
 };
 
+$("#telemetryToggle").addEventListener("change", (event) => {
+  event.target.checked = saveTelemetryPreference(event.target.checked);
+  void syncTelemetryPreference();
+});
+
+void syncTelemetryPreference();
 showStep(1);

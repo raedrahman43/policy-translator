@@ -1,7 +1,8 @@
 # Community metrics
 
-Policy Translator uses GitHub's aggregate repository metrics rather than runtime product
-telemetry.
+Policy Translator uses GitHub's aggregate repository metrics for public-community
+signals. An optional, separately deployed runtime telemetry system can count anonymous
+product funnel events when an official build is configured for it.
 
 ## Feature coverage
 
@@ -52,3 +53,7 @@ changes.
 - Views may include maintainers and bots.
 - Private-repository traffic may depend on token permissions.
 - Metrics are directional community signals, not customer adoption telemetry.
+
+For actual anonymous application-session and workflow counts, see
+[TELEMETRY.md](TELEMETRY.md). Runtime metrics are inactive when no ingestion endpoint is
+configured.

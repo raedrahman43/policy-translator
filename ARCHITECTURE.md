@@ -15,6 +15,17 @@ validate -> extract context -> map features -> order steps
 PowerShell package                    Port 4001 Graph executor
 ```
 
+Optional telemetry is outside the migration-data path:
+
+```text
+Allowlisted anonymous event
+        |
+        v
+local sanitizer -> configured Azure Function -> Application Insights -> Workbook
+
+Analyzer JSON, tenant data, credentials, and Graph payloads never enter this path.
+```
+
 ### Deterministic core
 
 | Path | Responsibility |
@@ -90,9 +101,12 @@ This is why:
 - Branding URL fetches block private/local networks and enforce HTTPS/type/size limits.
 - PowerShell substitutions escape quotes, dollar signs, backticks, and newlines.
 - Runtime state and customer exports are ignored from Git.
-- No product usage telemetry is emitted.
+- Runtime telemetry is inactive unless an endpoint is explicitly configured.
+- Configured telemetry uses an allowlisted anonymous schema and a visible opt-out.
+- Telemetry delivery failure never affects migration behavior.
 
-See [SECURITY.md](SECURITY.md) and [docs/PRIVACY.md](docs/PRIVACY.md).
+See [SECURITY.md](SECURITY.md), [docs/PRIVACY.md](docs/PRIVACY.md), and
+[docs/TELEMETRY.md](docs/TELEMETRY.md).
 
 ## Tests
 

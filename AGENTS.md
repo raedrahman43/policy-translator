@@ -89,7 +89,8 @@ architecture, threat model, privacy review, and tenant-isolation design.
 7. **Parity:** PowerShell and live Graph paths target the same result where both
    paths exist.
 8. **Local privacy:** Analyzer JSON, tokens, credentials, and generated state are
-   not uploaded or persisted by the application.
+   not uploaded or persisted by the application. Optional telemetry is restricted to
+   the versioned allowlist in `src/telemetry/telemetryClient.ts`.
 
 Do not broadly catch Graph 400/403 errors and continue. Surface permission,
 licensing, unsupported API, conflict, and incomplete-result failures explicitly.
@@ -207,6 +208,9 @@ Never commit or paste into issues, pull requests, fixtures, or documentation:
 Use synthetic fixtures. Keep access tokens server-side and in memory. Preserve HTTPS,
 SSRF, redirect, file type, and size controls for branding assets. Escape untrusted
 values in generated PowerShell.
+
+Do not add telemetry properties without updating the client allowlist, receiver
+allowlist, privacy documentation, dashboard queries, and telemetry regression suite.
 
 If a secret is exposed, removal is not enough: revoke or rotate it.
 

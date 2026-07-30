@@ -7,10 +7,11 @@
   "scripts": {
     "test": "ts-node src/test/regression.ts",
     "test:web-proto": "ts-node src/test/webProtoRegression.ts",
+    "test:telemetry": "ts-node src/test/telemetryRegression.ts",
     "typecheck": "tsc --noEmit",
     "check:powershell": "pwsh -NoProfile -File scripts/check-powershell.ps1",
     "docs:features": "ts-node src/tools/generateFeatureDashboard.ts",
-    "check": "npm run typecheck && npm test && npm run test:web-proto && npm run check:powershell && npm run docs:features",
+    "check": "npm run typecheck && npm test && npm run test:web-proto && npm run test:telemetry && npm run check:powershell && npm run docs:features",
     "doctor": "pwsh -NoProfile -File scripts/check-prerequisites.ps1",
     "doctor:scripts": "pwsh -NoProfile -File scripts/check-prerequisites.ps1 -GeneratedScripts",
     "translate": "ts-node src/index.ts",
