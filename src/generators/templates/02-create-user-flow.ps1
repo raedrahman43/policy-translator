@@ -156,6 +156,27 @@ Write-Host "`n[6/6] Ensuring the app is bound to the user flow..." -ForegroundCo
 $flowUri = "https://graph.microsoft.com/v1.0/identity/authenticationEventsFlows/$($flow.id)"
 $bound = $false
 $lastBindingError = $null
+function Test-IsBindingReplicationError {
+    param($ErrorRecord)
+    $status = $ErrorRecord.Exception.Response.StatusCode
+    $message = if ($ErrorRecord.ErrorDetails.Message) {
+        $ErrorRecord.ErrorDetails.Message
+    } else {
+        $ErrorRecord.Exception.Message
+    }
+    if ($message -match "not visible") { return $true }
+    if ($message -match "already (exist|exists|included|added)" -and $message -notmatch "another|different") {
+        return $true
+    }
+    if ($status -in @(429, 502, 503, 504)) { return $true }
+    if ($message -match "timed out|timeout|temporarily unavailable|connection.*(?:closed|reset|failed)") {
+        return $true
+    }
+    return $status -eq 404 -or (
+        $status -eq 400 -and
+        $message -match "replicat|is invalid|does not exist|not found|cannot find|not visible"
+    )
+}
 for ($attempt = 1; $attempt -le 6 -and -not $bound; $attempt++) {
     try {
         $currentFlow = Invoke-MgGraphRequest -Method GET -Uri $flowUri
@@ -177,6 +198,21 @@ for ($attempt = 1; $attempt -le 6 -and -not $bound; $attempt++) {
         if (-not $bound) { throw "The binding request returned, but the app is not visible on the flow yet." }
     } catch {
         $lastBindingError = $_
+        try {
+            $verifyAfterError = Invoke-MgGraphRequest -Method GET -Uri $flowUri
+            $verifyAfterErrorIds = @($verifyAfterError.conditions.applications.includeApplications | ForEach-Object { $_.appId })
+            if ($verifyAfterErrorIds -contains $appId) {
+                $bound = $true
+                break
+            }
+        } catch {
+            # Preserve the original binding error for classification below.
+        }
+        if (-not (Test-IsBindingReplicationError $lastBindingError)) {
+            Write-Host "  App binding failed permanently: $($lastBindingError.Exception.Message)" -ForegroundColor Red
+            Write-Host "  Check permissions and whether this application is already associated with another user flow." -ForegroundColor Yellow
+            exit 1
+        }
         if ($attempt -lt 6) {
             Write-Host "  App binding is still replicating (attempt $attempt/6). Retrying..." -ForegroundColor Yellow
             Start-Sleep -Seconds (2 * $attempt)
@@ -197,6 +233,7 @@ Write-Host "  App binding verified." -ForegroundColor Green
 try {
     $desiredFlow = $body | ConvertFrom-Json
     $desiredAttributes = @($desiredFlow.onAttributeCollection.attributes)
+    $desiredInputs = @($desiredFlow.onAttributeCollection.attributeCollectionPage.views[0].inputs)
     $flowCastUri = "$flowUri/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow?`$expand=onAttributeCollection"
     $detailedFlow = Invoke-MgGraphRequest -Method GET -Uri $flowCastUri
     $currentAttributeIds = @($detailedFlow.onAttributeCollection.attributes | ForEach-Object { $_.id })
@@ -210,6 +247,131 @@ try {
         Invoke-MgGraphRequest -Method POST -Uri $attributeRefUri `
             -Body $attributeRefBody -ContentType "application/json" | Out-Null
         Write-Host "  Added missing sign-up attribute '$($attribute.displayName)'." -ForegroundColor Green
+    }
+
+    # Adding an attribute reference can leave default page settings (for example,
+    # required=false). Reconcile the complete input list to match the generated plan.
+    $attributesConverged = $false
+    for ($attempt = 1; $attempt -le 5 -and -not $attributesConverged; $attempt++) {
+        Start-Sleep -Seconds $attempt
+        try {
+            $detailedFlow = Invoke-MgGraphRequest -Method GET -Uri $flowCastUri
+            $replicatedIds = @($detailedFlow.onAttributeCollection.attributes | ForEach-Object { $_.id })
+            $attributesConverged = @(
+                $desiredAttributes | Where-Object { $replicatedIds -notcontains $_.id }
+            ).Count -eq 0
+        } catch {
+            if ($attempt -eq 5) { throw }
+        }
+    }
+    if (-not $attributesConverged) {
+        throw "Sign-up attribute references did not converge after retrying."
+    }
+    $currentInputs = @($detailedFlow.onAttributeCollection.attributeCollectionPage.views[0].inputs)
+    $currentViews = @($detailedFlow.onAttributeCollection.attributeCollectionPage.views)
+    $desiredByAttribute = @{}
+    foreach ($desiredInput in $desiredInputs) {
+        $desiredByAttribute[[string]$desiredInput.attribute] = $desiredInput
+    }
+
+    $mergedInputs = @()
+    foreach ($currentInput in $currentInputs) {
+        $attributeId = [string]$currentInput.attribute
+        $desiredInput = $desiredByAttribute[$attributeId]
+        $inputCopy = $currentInput | ConvertTo-Json -Depth 20 | ConvertFrom-Json -AsHashtable
+        if ($desiredInput) {
+            $inputCopy["attribute"] = $attributeId
+            $inputCopy["label"] = [string]$desiredInput.label
+            $inputCopy["inputType"] = [string]$desiredInput.inputType
+            $inputCopy["hidden"] = [bool]$desiredInput.hidden
+            $inputCopy["editable"] = [bool]$desiredInput.editable
+            $inputCopy["writeToDirectory"] = [bool]$desiredInput.writeToDirectory
+            $inputCopy["required"] = [bool]$desiredInput.required
+            $mergedInputs += $inputCopy
+            $desiredByAttribute.Remove($attributeId)
+        } else {
+            $mergedInputs += $inputCopy
+        }
+    }
+    foreach ($entry in $desiredByAttribute.GetEnumerator()) {
+        $desiredInput = $entry.Value
+        $mergedInputs += @{
+            attribute        = [string]$desiredInput.attribute
+            label            = [string]$desiredInput.label
+            inputType        = [string]$desiredInput.inputType
+            hidden           = [bool]$desiredInput.hidden
+            editable         = [bool]$desiredInput.editable
+            writeToDirectory = [bool]$desiredInput.writeToDirectory
+            required         = [bool]$desiredInput.required
+        }
+    }
+
+    $settingsMatch = $true
+    foreach ($desiredInput in $desiredInputs) {
+        $currentInput = $currentInputs | Where-Object { $_.attribute -eq $desiredInput.attribute } | Select-Object -First 1
+        if (-not $currentInput `
+            -or $currentInput.label -ne $desiredInput.label `
+            -or $currentInput.inputType -ne $desiredInput.inputType `
+            -or [bool]$currentInput.hidden -ne [bool]$desiredInput.hidden `
+            -or [bool]$currentInput.editable -ne [bool]$desiredInput.editable `
+            -or [bool]$currentInput.writeToDirectory -ne [bool]$desiredInput.writeToDirectory `
+            -or [bool]$currentInput.required -ne [bool]$desiredInput.required) {
+            $settingsMatch = $false
+            break
+        }
+    }
+
+    if (-not $settingsMatch) {
+        $mergedViews = @()
+        if ($currentViews.Count -gt 0) {
+            for ($viewIndex = 0; $viewIndex -lt $currentViews.Count; $viewIndex++) {
+                $viewCopy = $currentViews[$viewIndex] | ConvertTo-Json -Depth 20 | ConvertFrom-Json -AsHashtable
+                if ($viewIndex -eq 0) { $viewCopy["inputs"] = $mergedInputs }
+                $mergedViews += $viewCopy
+            }
+        } else {
+            $mergedViews = @(@{ inputs = $mergedInputs })
+        }
+        $pagePatch = @{
+            "@odata.type" = "#microsoft.graph.externalUsersSelfServiceSignUpEventsFlow"
+            onAttributeCollection = @{
+                "@odata.type" = "#microsoft.graph.onAttributeCollectionExternalUsersSelfServiceSignUp"
+                attributeCollectionPage = @{
+                    views = $mergedViews
+                }
+            }
+        } | ConvertTo-Json -Depth 10
+        Invoke-MgGraphRequest -Method PATCH -Uri $flowUri `
+            -Body $pagePatch -ContentType "application/json" | Out-Null
+
+        $pageSettingsConverged = $false
+        for ($attempt = 1; $attempt -le 5 -and -not $pageSettingsConverged; $attempt++) {
+            Start-Sleep -Seconds $attempt
+            try {
+                $verifiedFlow = Invoke-MgGraphRequest -Method GET -Uri $flowCastUri
+                $verifiedInputs = @($verifiedFlow.onAttributeCollection.attributeCollectionPage.views[0].inputs)
+                $pageSettingsConverged = $true
+                foreach ($desiredInput in $desiredInputs) {
+                    $verifiedInput = $verifiedInputs | Where-Object { $_.attribute -eq $desiredInput.attribute } | Select-Object -First 1
+                    if (-not $verifiedInput `
+                        -or $verifiedInput.label -ne $desiredInput.label `
+                        -or $verifiedInput.inputType -ne $desiredInput.inputType `
+                        -or [bool]$verifiedInput.hidden -ne [bool]$desiredInput.hidden `
+                        -or [bool]$verifiedInput.editable -ne [bool]$desiredInput.editable `
+                        -or [bool]$verifiedInput.writeToDirectory -ne [bool]$desiredInput.writeToDirectory `
+                        -or [bool]$verifiedInput.required -ne [bool]$desiredInput.required) {
+                        $pageSettingsConverged = $false
+                        break
+                    }
+                }
+            } catch {
+                if ($attempt -eq 5) { throw }
+            }
+        }
+        if (-not $pageSettingsConverged) {
+            throw "Sign-up page settings did not converge after retrying."
+        }
+        Write-Host "  Sign-up page labels and required/write settings reconciled." -ForegroundColor Green
     }
 } catch {
     Write-Host "  FAILED to reconcile sign-up attributes: $($_.Exception.Message)" -ForegroundColor Red

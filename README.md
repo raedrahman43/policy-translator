@@ -19,6 +19,23 @@ same Analyzer input produces the same migration package.
 > start with simulation, inspect every generated script, and validate all follow-ups.
 > This project is not an official Microsoft support channel.
 
+## What this project does not automatically convert
+
+Policy Translator is a migration accelerator, not a general-purpose B2C custom-policy
+compiler. It does not automatically convert:
+
+- arbitrary orchestration branches such as "if claim X exists, skip MFA";
+- credential-less identity-broker architectures;
+- customer-specific REST/government API business logic;
+- custom HTML or JavaScript;
+- Apple or custom OIDC providers through unsupported Graph models;
+- SAML policies that Migration Policy Analyzer does not currently emit;
+- users, passwords, sessions, or application data.
+
+Detected scenarios remain visible in the gap report with redesign or manual guidance.
+Out-of-band assets and capabilities that Analyzer does not emit, such as users or
+unsupported SAML policy inventory, require a separate migration inventory.
+
 ## Quick start
 
 Prerequisites:
@@ -81,15 +98,15 @@ See [USER-GUIDE.md](USER-GUIDE.md) for the full customer-administrator walkthrou
 | --- | --- | --- |
 | Native app registration and service principal | Script + live Graph | Live verified; reruns converge |
 | Email/password sign-up and sign-in user flow | Script + live Graph | Live verified; reruns repair app/attribute bindings |
-| Native-auth smoke test | Read-only live endpoint check | Live verified |
+| Native-auth wiring check | Calls `/initiate` with a synthetic nonexistent user | A safe `user_not_found`-class response proves the app and flow are wired |
 | Standard and custom sign-up attributes | Script + live Graph | Verify page layout and directory writes |
 | Google and Facebook federation | Script + live Graph | Provider creation is automated; live provider sign-in is required |
-| Email OTP | Script + live Graph | Live verified |
+| Email OTP | Script + live Graph | MFA/reset method verified; primary passwordless user-flow selection remains manual |
 | Claims mapping | Script + live Graph | Decode a real token and verify each claim |
 | SSPR prerequisites | Script + live Graph | Complete a real password reset |
 | SMS policy | Script + live Graph | Requires phone registration and tenant telephony readiness |
 | Conditional Access | Report-only policy | Requires the protected resource app ID and sign-in-log validation |
-| FIDO2/passkey policy | Tenant policy only | Custom domain and registration experience still required |
+| FIDO2/passkey policy | Tenant policy only | Local password account, recent MFA, Azure Front Door, custom domain, and registration experience required |
 | Company Branding | Port-4001 live Graph path | Verify hosted page assets and custom CSS |
 
 Apple and custom OIDC are **guided manual** paths. External ID supports them, but

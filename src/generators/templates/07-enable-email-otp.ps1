@@ -47,8 +47,9 @@ try {
         -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Email"
     $currentState = $currentConfig.state
     Write-Host "  Current state: $currentState" -ForegroundColor Gray
+    Write-Host "  External ID use: $($currentConfig.allowExternalIdToUseEmailOtp)" -ForegroundColor Gray
 
-    if ($currentState -eq "enabled") {
+    if ($currentState -eq "enabled" -and $currentConfig.allowExternalIdToUseEmailOtp -eq "enabled") {
         Write-Host "  Email OTP is already enabled. No changes needed." -ForegroundColor Green
         Write-Host "`n  Done!" -ForegroundColor Cyan
         exit 0
@@ -85,10 +86,25 @@ try {
 
 # ─── VERIFY ───
 Write-Host "`n  Verifying..." -ForegroundColor Cyan
-Start-Sleep -Seconds 2
-$verify = Invoke-MgGraphRequest -Method GET `
-    -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Email"
+$verify = $null
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+    Start-Sleep -Seconds $attempt
+    try {
+        $verify = Invoke-MgGraphRequest -Method GET `
+            -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Email"
+        if ($verify.state -eq "enabled" -and $verify.allowExternalIdToUseEmailOtp -eq "enabled") {
+            break
+        }
+    } catch {
+        if ($attempt -eq 5) { throw }
+    }
+}
+if ($verify.state -ne "enabled" -or $verify.allowExternalIdToUseEmailOtp -ne "enabled") {
+    Write-Host "  Verification failed: Email OTP is not fully enabled for External ID." -ForegroundColor Red
+    exit 1
+}
 Write-Host "  Email OTP state: $($verify.state)" -ForegroundColor Green
+Write-Host "  External ID use: $($verify.allowExternalIdToUseEmailOtp)" -ForegroundColor Green
 
 Write-Host "`n═══════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host "  Email OTP is now enabled for this tenant." -ForegroundColor Green

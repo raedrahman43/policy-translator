@@ -18,13 +18,140 @@ export interface ManualRecreation {
   recreatable: boolean;
   /** One-line framing shown above the steps. */
   note: string;
+  /** Optional UI/report heading when these are validation rather than recreation steps. */
+  heading?: string;
   /** Ordered, do-this-then-that steps. */
   steps: string[];
 }
 
-type Rule = { test: RegExp; build: () => ManualRecreation };
+type Rule = {
+  test: RegExp;
+  build: () => ManualRecreation;
+  followUpType?: "validation";
+};
 
 const RULES: Rule[] = [
+  // ── Validation-only follow-ups for automated resources ─────────────────────
+  {
+    test: /(?:signin|signup)_idp_google.*(?:can(?:not|'t) validate|real google|live provider validation)/,
+    followUpType: "validation",
+    build: () => ({
+      recreatable: true,
+      heading: "How to validate this automated result",
+      note: "Google was configured automatically; the remaining work is a real provider journey and token check.",
+      steps: [
+        "Start the target application's hosted sign-up/sign-in flow.",
+        "Choose Google and complete provider authentication with a test account.",
+        "Confirm the External ID user is created or linked as expected.",
+        "Decode the issued token and verify required claims and values.",
+      ],
+    }),
+  },
+  {
+    test: /(?:signin|signup)_idp_facebook.*(?:can(?:not|'t) validate|real facebook|live provider validation)/,
+    followUpType: "validation",
+    build: () => ({
+      recreatable: true,
+      heading: "How to validate this automated result",
+      note: "Facebook was configured automatically; the remaining work is a real provider journey and token check.",
+      steps: [
+        "Start the target application's hosted sign-up/sign-in flow.",
+        "Choose Facebook and complete provider authentication with a test account.",
+        "Confirm the External ID user is created or linked as expected.",
+        "Decode the issued token and verify required claims and values.",
+      ],
+    }),
+  },
+  {
+    test: /global_ux_tenantbranding.*(?:hosted.*sign-in|successful graph write|hosted-page validation|verify the real)/,
+    followUpType: "validation",
+    build: () => ({
+      recreatable: true,
+      heading: "How to validate this automated result",
+      note: "Branding was applied through the guided experience; validate the actual Microsoft-hosted page rather than the local preview alone.",
+      steps: [
+        "Open the real application sign-in URL in a private browser session.",
+        "Verify logos, background, colors, text, localizations, and custom CSS.",
+        "Test desktop and mobile viewport behavior.",
+        "Record any difference between the preview and hosted result before rollout.",
+      ],
+    }),
+  },
+  {
+    test: /global_token_claimsmapping.*(?:successful claims-mapping write|token comparison|expected token contract|verify.*token)/,
+    followUpType: "validation",
+    build: () => ({
+      recreatable: true,
+      heading: "How to validate this automated result",
+      note: "The claims mapping policy was configured; only a real application token proves the contract.",
+      steps: [
+        "Sign in through the target application and request the intended token audience.",
+        "Decode the token with a trusted local tool.",
+        "Compare every expected claim name, source, type, and value with the source contract.",
+        "Verify that no unnecessary or sensitive claim is exposed.",
+      ],
+    }),
+  },
+  {
+    test: /passwordreset_recovery.*(?:configures sspr prerequisites|real password reset|forgot password)/,
+    followUpType: "validation",
+    build: () => ({
+      recreatable: true,
+      heading: "How to validate this automated result",
+      note: "SSPR prerequisites were configured automatically; validate the complete hosted recovery journey.",
+      steps: [
+        "Open the target application's sign-in page and select Forgot password.",
+        "Complete Email OTP or the approved recovery method.",
+        "Set a new password and sign in with it.",
+        "Verify branding, error handling, and audit/sign-in logs.",
+      ],
+    }),
+  },
+  {
+    test: /signup_otp_email.*(?:successful graph write|real sign-up|email verification)/,
+    followUpType: "validation",
+    build: () => ({
+      recreatable: true,
+      heading: "How to validate this automated result",
+      note: "Email OTP was configured automatically; validate email verification during a real sign-up.",
+      steps: [
+        "Start a new customer sign-up with a test email address.",
+        "Receive and redeem the one-time passcode.",
+        "Confirm the account is created only after successful verification.",
+        "Inspect the issued token and sign-in logs.",
+      ],
+    }),
+  },
+  {
+    test: /signup_attributes_custom.*(?:creates and binds|live custom-attribute validation|stored values)/,
+    followUpType: "validation",
+    build: () => ({
+      recreatable: true,
+      heading: "How to validate this automated result",
+      note: "Custom attributes were created and added automatically; validate the customer-visible and stored result.",
+      steps: [
+        "Open the real sign-up page and verify every custom label, input type, order, and required flag.",
+        "Complete a sign-up with representative values.",
+        "Inspect the created user and confirm each value was written correctly.",
+        "Decode the application token if any custom attributes should be emitted as claims.",
+      ],
+    }),
+  },
+  // ── Identity-broker / no-directory architecture ───────────────────────────
+  {
+    test: /identity broker|credential.?less|passthrough.*directory|without.*directory|no directory|does not (?:capture|own).*credentials/,
+    build: () => ({
+      recreatable: false,
+      note: "A credential-less B2C broker is an architecture redesign, not a direct user-flow translation. External ID requires an explicit account, federation, and token-issuance model.",
+      steps: [
+        "Document the source of truth for credentials, MFA, SSO, user lifecycle, and token claims.",
+        "Decide whether the upstream identity system should become a custom OIDC/SAML provider or remain behind a customer-owned API.",
+        "Define how and when the required linked External ID directory user is provisioned and associated with the upstream identity.",
+        "Map validation and external claims to supported custom authentication extension events.",
+        "Test account linking, sign-in, sign-out, MFA, and token contracts end to end before rollout.",
+      ],
+    }),
+  },
   // ── Apple federation ────────────────────────────────────────────────────────
   {
     test: /\bapple\b.*(?:idp|identity|sign.?in|federat)|sign.?in.*\bapple\b/,
@@ -55,6 +182,78 @@ const RULES: Rule[] = [
       ],
     }),
   },
+  // ── Google federation on a manually created flow ──────────────────────────
+  {
+    test: /\bgoogle\b.*(?:idp|identity provider|federat|sign.?in)|sign.?in.*\bgoogle\b/,
+    build: () => ({
+      recreatable: true,
+      note: "Google federation is supported, but this migration shape requires the target user flow to be created or selected manually first.",
+      steps: [
+        "Create the intended External ID user flow and choose its primary local-account method.",
+        "Configure the Google identity provider with the client ID, client secret, and redirect URIs.",
+        "Enable Google on the same target user flow; a separate application is not required unless the application is already bound to an incompatible flow.",
+        "Run a real Google sign-up/sign-in and verify account creation and token claims.",
+      ],
+    }),
+  },
+  // ── Facebook federation on a manually created flow ────────────────────────
+  {
+    test: /\bfacebook\b.*(?:idp|identity provider|federat|sign.?in)|sign.?in.*\bfacebook\b/,
+    build: () => ({
+      recreatable: true,
+      note: "Facebook federation is supported, but this migration shape requires the target user flow to be created or selected manually first.",
+      steps: [
+        "Create the intended External ID user flow and choose its primary local-account method.",
+        "Configure the Facebook identity provider with the app ID, app secret, and redirect URI.",
+        "Enable Facebook on the same target user flow; a separate application is not required unless the application is already bound to an incompatible flow.",
+        "Run a real Facebook sign-up/sign-in and verify account creation and token claims.",
+      ],
+    }),
+  },
+  // ── Inbound SAML / WS-Fed federation ──────────────────────────────────────
+  {
+    test: /enterprise.*saml|saml.*(?:idp|identity provider|federat)|ws-?fed/,
+    build: () => ({
+      recreatable: true,
+      note: "External ID can federate inbound to a supported SAML or WS-Fed identity provider, but it is not a general SAML broker and cannot reproduce every B2C SAML orchestration pattern.",
+      steps: [
+        "Collect the identity provider metadata URL or issuer, sign-in endpoint, signing certificate, and required email/NameID claims.",
+        "Confirm whether domain-based or domainless federation is required; external tenants allow only one domainless SAML provider.",
+        "Configure the inbound federation in the Microsoft Entra admin center.",
+        "Map the required claims and confirm a linked External ID directory user is created.",
+        "Run a real sign-in and verify issuer, NameID/email, account linking, and application token behavior.",
+      ],
+    }),
+  },
+  // ── Primary Email OTP user flow ────────────────────────────────────────────
+  {
+    test: /signin_otp_email.*(?:did not identify|whether it is|requirements clarification|mode is unclear)/,
+    build: () => ({
+      recreatable: true,
+      note: "The Analyzer detected Email OTP but did not identify its journey role. Policy Translator enables only the safe tenant-level method until the authentication design is clarified.",
+      steps: [
+        "Confirm whether Email OTP is primary passwordless sign-in, secondary MFA, sign-up verification, or password-reset verification.",
+        "If primary, configure an Email OTP user flow and bind the intended application.",
+        "If MFA, keep a compatible primary sign-in method and create a report-only Conditional Access policy that requires MFA.",
+        "If used for password reset, verify the Email + Password flow and Forgot password experience.",
+        "Run the exact end-user journey and verify the issued token before rollout.",
+      ],
+    }),
+  },
+  {
+    test: /signin_otp_email.*(?:primary email otp|passwordless.*email|email.*one.?time.*primary|one.?time passcode as (?:the )?primary)/,
+    build: () => ({
+      recreatable: true,
+      note: "The Email OTP authentication method can be enabled automatically, but Policy Translator does not currently create a user flow whose primary local-account method is Email one-time passcode.",
+      steps: [
+        "If the existing application is already bound to an Email + Password or passkey-bootstrap flow, create a separate application registration for the primary Email OTP journey.",
+        "Entra admin center → External Identities → User flows and create or open the target sign-up/sign-in flow.",
+        "Set the local account identity provider to Email with one-time passcode.",
+        "Add the intended application to that flow; one application can be associated with only one user flow.",
+        "Run a real passwordless sign-up and sign-in and verify the issued token.",
+      ],
+    }),
+  },
   // ── Passkey rollout prerequisites ──────────────────────────────────────────
   {
     test: /passkey|fido2/,
@@ -62,7 +261,10 @@ const RULES: Rule[] = [
       recreatable: true,
       note: "Enabling the FIDO2 policy is only one part of an External ID passkey rollout. Passkeys use browser-delegated authentication, not native-auth APIs.",
       steps: [
-        "Configure and verify a custom URL domain for the external tenant.",
+        "Confirm the target users have email/username-and-password local accounts; Email OTP and federated users can't currently register passkeys.",
+        "Require and complete MFA no more than five minutes before passkey registration.",
+        "Configure Azure Front Door for the external tenant and complete the custom URL domain setup.",
+        "Verify the custom domain and update the application's authority and redirect configuration.",
         "Entra admin center → Protection → Authentication methods → Passkey (FIDO2), then verify the intended target population.",
         "Provide a credential-management experience where users can register and remove passkeys.",
         "Test registration and browser sign-in on the custom domain before production rollout.",
@@ -80,6 +282,63 @@ const RULES: Rule[] = [
         "Entra admin center → Protection → Conditional Access → Policies and open the generated report-only policy.",
         "Confirm the target resource, users, and Require multifactor authentication grant control.",
         "Review report-only sign-in logs with test users, then enable the policy only after successful MFA validation.",
+      ],
+    }),
+  },
+  // ── External token claims / custom claims provider ─────────────────────────
+  {
+    test: /global_token_externalclaims|external token claims|custom claims provider|ontokenissuancestart/,
+    build: () => ({
+      recreatable: true,
+      note: "Directory-backed claims can use claims mapping. Runtime data from external systems requires an OnTokenIssuanceStart custom claims provider plus an application claims mapping policy.",
+      steps: [
+        "Classify each claim as directory-backed, extension-attribute-backed, transformed, or fetched from an external system.",
+        "Use claims mapping for directory-backed values and resolve the real External ID extension attribute IDs.",
+        "For runtime external data, implement and secure an OnTokenIssuanceStart REST API/custom claims provider.",
+        "Map the returned claim IDs into the target application's token policy.",
+        "Compare a real source B2C token and target External ID token claim by claim.",
+      ],
+    }),
+  },
+  // ── Custom user-flow attributes ────────────────────────────────────────────
+  {
+    test: /custom (?:user |extension )?attribute|sign.?up_attributes_custom/,
+    build: () => ({
+      recreatable: true,
+      note: "Custom user-flow attributes can be created in External ID and added to the target sign-up page once the intended user flow exists.",
+      steps: [
+        "Record each attribute's name, data type, display label, and required/optional behavior.",
+        "Entra admin center → External Identities → Custom user attributes, and create the attributes.",
+        "Open the target user flow → User attributes and add each custom attribute to the sign-up page.",
+        "Configure labels, input types, ordering, and required status.",
+        "Complete a real sign-up and verify the values are stored and emitted only where the application requires them.",
+      ],
+    }),
+  },
+  // ── Custom email provider ──────────────────────────────────────────────────
+  {
+    test: /custom email provider|custom email template|third.?party email|email notification provider|byo email/,
+    build: () => ({
+      recreatable: true,
+      note: "External ID supports a custom OTP email provider through the OnOtpSend custom authentication extension.",
+      steps: [
+        "Implement a public REST endpoint or Azure Function that validates the Entra call token and sends the supplied OTP through the approved email provider.",
+        "Create an OnOtpSend custom authentication extension and associate the endpoint/application registration.",
+        "Create an onEmailOtpSend event listener and assign it to the target applications or tenant scope.",
+        "Test sign-up, sign-in, MFA, and password-reset email scenarios that use OTP.",
+      ],
+    }),
+  },
+  // ── Custom SMS provider ────────────────────────────────────────────────────
+  {
+    test: /sms provider|custom.*sms|third.?party.*sms|sms.*notification provider/,
+    build: () => ({
+      recreatable: false,
+      note: "External ID currently uses Microsoft's SMS delivery path and does not expose an OnOtpSend-equivalent event for replacing it with a custom SMS provider.",
+      steps: [
+        "Confirm whether Microsoft-managed SMS satisfies the requirement.",
+        "If custom SMS routing is mandatory, record it as a platform gap and redesign the surrounding customer communication outside the authentication OTP pipeline.",
+        "Do not claim that an Azure Function can replace the built-in SMS MFA sender.",
       ],
     }),
   },
@@ -155,7 +414,7 @@ const RULES: Rule[] = [
   },
   // ── Localization / languages ───────────────────────────────────────────────
   {
-    test: /localiz|language|\bi18n\b|translat/,
+    test: /localiz|language|\bi18n\b|translation/,
     build: () => ({
       recreatable: true,
       note: "External ID localizes the sign-in experience through Company Branding language localizations.",
@@ -222,19 +481,6 @@ const RULES: Rule[] = [
       ],
     }),
   },
-  // ── Custom email / SMS provider ────────────────────────────────────────────
-  {
-    test: /email provider|sms provider|notification provider|custom.*(email|sms)|third.?party.*(email|sms)/,
-    build: () => ({
-      recreatable: true,
-      note: "External ID sends OTP email/SMS through Microsoft by default; a custom provider requires a notification-provider extension.",
-      steps: [
-        "For default delivery: Entra admin center → Protection → Authentication methods → Email OTP / SMS, and enable the method.",
-        "For a custom provider, implement a custom email/SMS provider extension (Azure Function) and register it as a notification extension.",
-        "Attach the extension and send a test OTP to confirm delivery.",
-      ],
-    }),
-  },
 ];
 
 const GENERIC: ManualRecreation = {
@@ -248,9 +494,15 @@ const GENERIC: ManualRecreation = {
 };
 
 /** Derive manual recreation guidance for a gap from its text. */
-export function manualRecreationSteps(feature: string, reason: string, recommendation: string): ManualRecreation {
+export function manualRecreationSteps(
+  feature: string,
+  reason: string,
+  recommendation: string,
+  followUpType?: "validation" | "manual" | "redesign",
+): ManualRecreation {
   const hay = `${feature} ${reason} ${recommendation}`.toLowerCase();
   for (const rule of RULES) {
+    if (rule.followUpType === "validation" && followUpType !== "validation") continue;
     if (rule.test.test(hay)) return rule.build();
   }
   return GENERIC;

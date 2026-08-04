@@ -19,6 +19,7 @@ export type ReadinessScore = "High" | "Medium" | "Low";
 
 export interface AnalysisFeature {
   name: string;
+  occurrence?: number;
   description?: string;
   reason: string;
   recommendation: string;

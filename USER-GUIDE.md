@@ -197,10 +197,32 @@ Do not treat a Graph 2xx response as the only proof.
 - Email OTP/SSPR/SMS: complete the end-user flow.
 - Claims mapping: decode a real token and inspect every expected claim.
 - Conditional Access: review report-only sign-in logs before enabling.
-- Passkey: verify custom domain plus registration and browser sign-in.
+- Passkey: verify an eligible local password account, recent MFA, Azure Front Door,
+  custom domain, registration, and browser sign-in.
 - Branding: open the real hosted sign-in page.
 
 ## Troubleshooting
+
+### Device-code sign-in fails with AADSTS530035
+
+Security Defaults can block the Microsoft Graph Command Line Tools device-code flow.
+Do not disable production security controls merely to use Policy Translator.
+
+Use the generated PowerShell package, whose `Connect-MgGraph` command uses an
+interactive browser sign-in, or ask the tenant administrator whether an approved
+Conditional Access configuration is appropriate.
+
+For Company Branding, the generated package is not a fallback because branding is a
+port-4001 Graph-only action. If Security Defaults blocks branding import/apply, use the
+manual branding controls and configure Company Branding in the Entra admin center.
+
+### What the native-auth wiring check does
+
+The read-only smoke test calls the External ID `/initiate` endpoint with a synthetic,
+nonexistent email address. A `user_not_found`-class response is treated as success
+because it proves the endpoint understood the request, the app is enabled for native
+authentication, and the user flow is bound correctly. It does not create a user or
+prove a full application sign-in.
 
 ### Port 4001 does not open
 

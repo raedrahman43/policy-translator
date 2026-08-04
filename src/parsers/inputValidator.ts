@@ -241,9 +241,18 @@ export function validateAndNormalize(raw: unknown): ValidationResult {
   const duplicates = featureNames.filter((name, idx) => featureNames.indexOf(name) !== idx);
   if (duplicates.length > 0) {
     const uniqueDups = [...new Set(duplicates)];
+    for (const duplicateName of uniqueDups) {
+      let occurrence = 0;
+      for (const feature of validFeatures) {
+        if (feature.name === duplicateName) {
+          occurrence++;
+          feature.occurrence = occurrence;
+        }
+      }
+    }
     warnings.push({
       field: "features",
-      message: `Duplicate feature keys detected: ${uniqueDups.join(", ")}. Last occurrence will be used.`,
+      message: `Duplicate feature keys detected: ${uniqueDups.join(", ")}. Every occurrence will be evaluated because the same key can represent different journey contexts.`,
       severity: "warning",
     });
   }

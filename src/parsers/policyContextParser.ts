@@ -42,6 +42,18 @@ export interface PolicyContext {
   };
 }
 
+export function withEmailPasswordBaseline(attributes: UserAttribute[]): UserAttribute[] {
+  const byId = new Map<string, UserAttribute>();
+  const baseline: UserAttribute[] = [
+    { id: "email", displayName: "Email Address", dataType: "string", required: true },
+    { id: "displayName", displayName: "Display Name", dataType: "string", required: true },
+  ];
+  for (const attribute of [...baseline, ...attributes]) {
+    byId.set(attribute.id, { ...attribute });
+  }
+  return [...byId.values()];
+}
+
 /**
  * Derive a clean app name from the B2C policy name.
  * "B2C_1A_FullSignUpSignIn" → "migrated-FullSignUpSignIn"
@@ -234,24 +246,26 @@ function extractCustomAttributes(features: AnalysisFeature[]): CustomAttribute[]
   const custom: CustomAttribute[] = [];
   const seen = new Set<string>();
 
-  const customFeature = features.find(
+  const customFeatures = features.filter(
     (f) => f.name === "signUp_attributes_custom" && f.externalIdAvailability === "Available",
   );
-  if (!customFeature) return custom;
+  if (!customFeatures.length) return custom;
 
-  const text = `${customFeature.description || ""} ${customFeature.reason || ""}`;
   const candidates: string[] = [];
 
-  const extRe = /extension_(?:[0-9a-fA-F]{32}_)?([A-Za-z][A-Za-z0-9_]*)/g;
-  let m: RegExpExecArray | null;
-  while ((m = extRe.exec(text)) !== null) candidates.push(m[1]!);
+  for (const customFeature of customFeatures) {
+    const text = `${customFeature.description || ""} ${customFeature.reason || ""}`;
+    const extRe = /extension_(?:[0-9a-fA-F]{32}_)?([A-Za-z][A-Za-z0-9_]*)/g;
+    let m: RegExpExecArray | null;
+    while ((m = extRe.exec(text)) !== null) candidates.push(m[1]!);
 
-  const parenRe = /\(([^)]*)\)/g;
-  let p: RegExpExecArray | null;
-  while ((p = parenRe.exec(text)) !== null) {
-    for (const raw of p[1]!.split(/[,;]/)) {
-      const t = raw.trim();
-      if (/^[A-Za-z][A-Za-z0-9_]*$/.test(t)) candidates.push(t);
+    const parenRe = /\(([^)]*)\)/g;
+    let p: RegExpExecArray | null;
+    while ((p = parenRe.exec(text)) !== null) {
+      for (const raw of p[1]!.split(/[,;]/)) {
+        const t = raw.trim();
+        if (/^[A-Za-z][A-Za-z0-9_]*$/.test(t)) candidates.push(t);
+      }
     }
   }
 

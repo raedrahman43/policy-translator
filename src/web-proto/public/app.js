@@ -17,18 +17,23 @@ const state = {
   finalGapReport: "",
 };
 
+const selectedModernizationExtras = () => {
+  const detected = new Set((state.analysis?.steps || []).map((step) => step.kind));
+  return orderedSelected().filter((kind) => EXTRA_ORDER.includes(kind) && !detected.has(kind));
+};
+
 // StepKind → catalog entry (label, file, scopes, grouping, idp key)
 const CATALOG = {
   "create-native-app":              { label: "Native app registration",            scopes: ["Application.ReadWrite.All"], core: true },
   "create-user-flow-emailpassword": { label: "Sign-up / sign-in user flow",         scopes: ["EventListener.ReadWrite.All", "IdentityUserFlow.ReadWrite.All"], core: true },
-  "smoke-test-native-auth":         { label: "Native-auth smoke test (read-only)",  scopes: ["Organization.Read.All"], core: true },
+  "smoke-test-native-auth":         { label: "Native-auth wiring check (read-only)", scopes: ["Organization.Read.All", "EventListener.Read.All"], core: true },
   "add-google-idp":                 { label: "Google sign-in",                      scopes: ["IdentityProvider.ReadWrite.All", "EventListener.ReadWrite.All", "Organization.Read.All"], idp: "google", group: "Google Identity Provider" },
   "add-facebook-idp":               { label: "Facebook sign-in",                    scopes: ["IdentityProvider.ReadWrite.All", "EventListener.ReadWrite.All"], idp: "facebook", group: "Facebook Identity Provider" },
   "add-oidc-idp":                   { label: "Custom OIDC sign-in",                 scopes: ["IdentityProvider.ReadWrite.All", "EventListener.ReadWrite.All"], idp: "oidc", group: "Custom OIDC Identity Provider" },
   "add-apple-idp":                  { label: "Apple sign-in",                       scopes: ["IdentityProvider.ReadWrite.All", "EventListener.ReadWrite.All", "Organization.Read.All"], idp: "apple", group: "Apple Identity Provider" },
-  "enable-email-otp":               { label: "Email one-time passcode",             scopes: ["Policy.ReadWrite.AuthenticationMethod"] },
+  "enable-email-otp":               { label: "Email OTP authentication method",     scopes: ["Policy.ReadWrite.AuthenticationMethod"] },
   "enable-sms-mfa":                 { label: "SMS one-time passcode (MFA)",         scopes: ["Policy.ReadWrite.AuthenticationMethod"] },
-  "create-ca-policy":               { label: "Conditional Access (require MFA)",    scopes: ["Policy.ReadWrite.ConditionalAccess"], group: "Conditional Access" },
+  "create-ca-policy":               { label: "Conditional Access (require MFA)",    scopes: ["Policy.Read.All", "Policy.ReadWrite.ConditionalAccess"], group: "Conditional Access" },
   "enable-passkey":                 { label: "Passkey (FIDO2)",                     scopes: ["Policy.ReadWrite.AuthenticationMethod"] },
   "claims-mapping-policy":          { label: "Claims mapping policy",               scopes: ["Policy.ReadWrite.ApplicationConfiguration", "Application.ReadWrite.All"] },
   "enable-sspr":                    { label: "Self-service password reset",         scopes: ["EventListener.ReadWrite.All", "Policy.ReadWrite.AuthenticationMethod"] },
@@ -42,8 +47,10 @@ const SCOPE_DESCRIPTIONS = {
   "IdentityUserFlow.ReadWrite.All": "create and update custom user attributes",
   "Policy.ReadWrite.AuthenticationMethod": "configure authentication methods (email OTP, SMS, passkey)",
   "Policy.ReadWrite.ConditionalAccess": "create and update Conditional Access policies",
+  "Policy.Read.All": "read existing Conditional Access policies before creating or reusing one",
   "Policy.ReadWrite.ApplicationConfiguration": "configure claims mapping policies",
   "Organization.Read.All": "read tenant details (used to discover your domain)",
+  "EventListener.Read.All": "verify the expected application is bound to the target user flow",
   "OrganizationalBranding.ReadWrite.All": "apply company branding to the hosted sign-in experience",
 };
 const SCOPE_ROLES = {
@@ -54,6 +61,7 @@ const SCOPE_ROLES = {
   "IdentityUserFlow.ReadWrite.All": "External ID user-flow administrator",
   "Policy.ReadWrite.AuthenticationMethod": "Authentication Policy Administrator",
   "Policy.ReadWrite.ConditionalAccess": "Conditional Access Administrator",
+  "Policy.Read.All": "Conditional Access Administrator",
   "OrganizationalBranding.ReadWrite.All": "Organizational Branding Administrator",
 };
 const IDP_MARK = {
@@ -66,10 +74,10 @@ const IDP_MARK = {
 // One-line "why add this" pitch for the upsell (features External ID supports
 // that were NOT in the customer's B2C policy).
 const PITCH = {
-  "enable-passkey": "Passwordless, phishing-resistant sign-in with FIDO2 passkeys.",
+  "enable-passkey": "Enable the FIDO2 policy; rollout still needs a local password account, recent MFA, Azure Front Door, a custom domain, and passkey enrollment.",
   "create-ca-policy": "Enforce MFA with a Conditional Access policy (starts report-only).",
   "enable-sms-mfa": "Add SMS one-time passcode as a second factor.",
-  "enable-email-otp": "Passwordless sign-in with an email one-time passcode.",
+  "enable-email-otp": "Enable Email OTP for MFA and password reset; primary passwordless sign-in still needs explicit user-flow configuration.",
   "enable-sspr": "Let users reset their own password — fewer support tickets.",
 };
 
@@ -87,7 +95,28 @@ const ALL_ORDER = [
   "claims-mapping-policy", "enable-sspr", "add-apple-idp", "enable-sms-mfa",
   "create-ca-policy", "enable-passkey", "create-custom-attributes",
 ];
-const orderedSelected = () => ALL_ORDER.filter((k) => state.selected.has(k));
+const STEP_DEPENDENCIES = {
+  "create-user-flow-emailpassword": ["create-native-app"],
+  "smoke-test-native-auth": ["create-native-app", "create-user-flow-emailpassword"],
+  "add-google-idp": ["create-native-app", "create-user-flow-emailpassword"],
+  "add-facebook-idp": ["create-native-app", "create-user-flow-emailpassword"],
+  "enable-email-otp": ["create-native-app"],
+  "enable-sms-mfa": ["create-native-app"],
+  "create-ca-policy": ["create-native-app"],
+  "enable-passkey": ["create-native-app"],
+  "claims-mapping-policy": ["create-native-app"],
+  "enable-sspr": ["create-native-app", "create-user-flow-emailpassword"],
+  "create-custom-attributes": ["create-native-app", "create-user-flow-emailpassword"],
+};
+const orderedSelected = () => {
+  const resolved = new Set();
+  const add = (kind) => {
+    (STEP_DEPENDENCIES[kind] || []).forEach(add);
+    resolved.add(kind);
+  };
+  state.selected.forEach(add);
+  return ALL_ORDER.filter((kind) => resolved.has(kind));
+};
 
 // True when the user imported branding or customised it away from the UI
 // defaults — i.e. there is something meaningful to write to Company Branding.
@@ -255,6 +284,11 @@ function featureLabel(raw) {
   return prettifyKey(raw);
 }
 
+function occurrenceSuffix(item, collection) {
+  if (!item?.occurrence && !item?.featureOccurrence) return "";
+  return ` · journey ${item.occurrence || item.featureOccurrence}`;
+}
+
 // ─── Step 1: upload ──────────────────────────────────────────────────────────
 const dropzone = $("#dropzone");
 const fileInput = $("#fileInput");
@@ -308,6 +342,9 @@ async function analyze(json) {
 function renderReview() {
   const a = state.analysis;
   $("#policyNameLabel").textContent = a.policyName;
+  $("#analyzerReadinessLabel").textContent = a.readiness.analyzerScore
+    ? `Policy Analyzer platform readiness: ${a.readiness.analyzerScore}`
+    : "Policy Analyzer platform readiness: not provided";
   const pct = a.readiness.percent;
   $("#gaugePct").textContent = pct + "%";
   $("#gauge").style.background = `conic-gradient(var(--brand) ${pct}%, var(--line) 0%)`;
@@ -315,7 +352,7 @@ function renderReview() {
 
   $("#statRow").innerHTML = [
     { n: a.readiness.total, l: "Features detected" },
-    { n: a.readiness.available, l: "Available in External ID" },
+    { n: a.readiness.ready, l: "Ready to migrate" },
     { n: state.selected.size, l: "Steps to configure" },
     { n: a.gaps.length, l: "Manual follow-ups" },
   ].map((s) => `<div class="stat-card"><div class="num">${s.n}</div><div class="lbl">${s.l}</div></div>`).join("");
@@ -325,6 +362,7 @@ function renderReview() {
     <tr>
       <td>
         <span class="feat-name">${escapeHtml(f.name)}</span>
+        ${occurrenceSuffix(f, a.features) ? `<span class="muted small">${escapeHtml(occurrenceSuffix(f, a.features))}</span>` : ""}
         ${f.description ? `<div class="muted small">${escapeHtml(f.description)}</div>` : ""}
         ${guidanceHtml(f.guidance, f.docLink)}
       </td>
@@ -333,7 +371,7 @@ function renderReview() {
 
   $("#gapCount").textContent = a.gaps.length ? `(${a.gaps.length})` : "(none)";
   $("#gapList").innerHTML = a.gaps.length
-    ? a.gaps.map((g) => `<li><strong>${escapeHtml(featureLabel(g.feature))}</strong><span class="muted small"> — ${escapeHtml(g.recommendation)}</span>${guidanceHtml(g.notes, g.docLink)}</li>`).join("")
+    ? a.gaps.map((g) => `<li><strong>${escapeHtml(featureLabel(g.feature) + occurrenceSuffix(g, a.gaps))}</strong><span class="muted small"> — ${escapeHtml(g.recommendation)}</span>${guidanceHtml(g.notes, g.docLink)}</li>`).join("")
     : `<li class="muted">Everything detected maps cleanly. Nothing needs manual work.</li>`;
 }
 $("#backTo1").addEventListener("click", () => showStep(1));
@@ -457,7 +495,8 @@ function renderSelect() {
     return selectItemHtml(s.kind, why, false);
   }).join("");
 
-  const extras = EXTRA_ORDER.filter((k) => !detectedKinds.has(k));
+  const extras = EXTRA_ORDER
+    .filter((k) => !detectedKinds.has(k));
   const extrasHtml = extras.map((k) => selectItemHtml(k, PITCH[k] || "", true)).join("");
   const showExtras = state.migrationMode === "modernize" && extras.length > 0;
 
@@ -524,26 +563,49 @@ function buildPreviewCard(b, selected) {
     const m = IDP_MARK[key]; if (!m) return "";
     return `<div class="login-idp"><span class="idp-mark" style="background:${m.bg}">${m.text}</span>${escapeHtml(m.label)}</div>`;
   }).join("");
-  const forgot = selected.has("enable-sspr") ? `<div class="login-forgot" style="color:${accent}">Forgot password?</div>` : "";
+  const hasPasswordFlow = selected.has("create-user-flow-emailpassword");
+  const hasEmailOtp = selected.has("enable-email-otp");
+  const forgot = hasPasswordFlow && selected.has("enable-sspr")
+    ? `<div class="login-forgot" style="color:${accent}">Forgot password?</div>`
+    : "";
   const orBlock = idps.length ? `<div class="login-or"><span>or</span></div>` : "";
+  const fields = hasPasswordFlow
+    ? `<div class="login-field"><span>Email</span></div>
+      <div class="login-field"><span>Password</span></div>`
+    : hasEmailOtp
+      ? `<div class="login-field"><span>Email</span></div>`
+      : "";
+  const title = hasPasswordFlow || hasEmailOtp ? "Sign in" : "Branding preview";
+  const subtitle = hasPasswordFlow
+    ? `to continue to ${escapeHtml(name)}`
+    : hasEmailOtp
+      ? `Email OTP user-flow configuration required for ${escapeHtml(name)}`
+      : "Authentication flow not selected";
+  const primaryAction = hasPasswordFlow
+    ? `<button class="login-primary" style="background:${accent}" type="button">Sign in</button>`
+    : hasEmailOtp
+      ? `<button class="login-primary" style="background:${accent}" type="button">Continue</button>`
+      : "";
+  const signup = hasPasswordFlow || hasEmailOtp
+    ? `<div class="login-signup">No account? <span style="color:${accent}">Create one</span></div>`
+    : "";
   return `
     <div class="login-card" style="border-top:3px solid ${accent}">
       <div class="login-logo" style="background:${accent}">${logo}</div>
-      <div class="login-title">Sign in</div>
-      <div class="login-sub">to continue to ${escapeHtml(name)}</div>
-      <div class="login-field"><span>Email</span></div>
-      <div class="login-field"><span>Password</span></div>
+      <div class="login-title">${title}</div>
+      <div class="login-sub">${subtitle}</div>
+      ${fields}
       ${forgot}
-      <button class="login-primary" style="background:${accent}" type="button">Sign in</button>
+      ${primaryAction}
       ${orBlock}
       <div class="login-idps">${idpHtml}</div>
-      <div class="login-signup">No account? <span style="color:${accent}">Create one</span></div>
+      ${signup}
     </div>`;
 }
 function updatePreview() {
   const mount = $("#loginPreview");
   applyPreviewBackground(mount, state.branding);
-  mount.innerHTML = buildPreviewCard(state.branding, state.selected);
+  mount.innerHTML = buildPreviewCard(state.branding, new Set(orderedSelected()));
 }
 
 function safeBrandAsset(value) {
@@ -657,7 +719,7 @@ $("#reviewApplyBtn").addEventListener("click", () => {
 // ─── Consent + preview gate ──────────────────────────────────────────────────
 function selectedScopes() {
   const scopes = new Set();
-  state.selected.forEach((k) => (CATALOG[k]?.scopes || []).forEach((s) => scopes.add(s)));
+  orderedSelected().forEach((k) => (CATALOG[k]?.scopes || []).forEach((s) => scopes.add(s)));
   if (hasBrandingToWrite()) scopes.add("OrganizationalBranding.ReadWrite.All");
   return [...scopes];
 }
@@ -671,7 +733,7 @@ function openConsent() {
   const roles = [...new Set(scopes.map((s) => SCOPE_ROLES[s]).filter(Boolean))];
   $("#consentRoles").innerHTML = roles.map((r) => `<li>${escapeHtml(r)}</li>`).join("") || `<li class="muted">None</li>`;
   applyPreviewBackground($("#consentPreviewMount"), state.branding);
-  $("#consentPreviewMount").innerHTML = buildPreviewCard(state.branding, state.selected);
+  $("#consentPreviewMount").innerHTML = buildPreviewCard(state.branding, new Set(orderedSelected()));
   $("#consentAgree").checked = false;
   $("#consentProceed").disabled = true;
   const sim = document.querySelector('input[name="applyMode"][value="simulate"]');
@@ -731,6 +793,7 @@ async function runApply() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         selectedKinds: orderedKinds,
+        selectedExtras: selectedModernizationExtras(),
         config: state.config,
         branding: state.branding,
         gapCount: state.analysis?.gaps?.length || 0,
@@ -759,12 +822,14 @@ async function runApply() {
 function renderApplyResult(result) {
   const s = result.summary || {};
   applyPreviewBackground($("#resultPreviewMount"), state.branding);
-  $("#resultPreviewMount").innerHTML = buildPreviewCard(state.branding, state.selected);
+  $("#resultPreviewMount").innerHTML = buildPreviewCard(state.branding, new Set(orderedSelected()));
   const rows = [
     ["Tenant", s.tenantId],
     ["App (client) ID", s.appId && s.appId !== "—" ? String(s.appId).slice(0, 13) + "…" : "—"],
     ["User flow", s.flowName],
-    ["Identity providers", (s.idps || []).length ? s.idps.join(", ") + (result.simulated ? "" : " — verify at live sign-in") : "email + password only"],
+    ["Identity providers", (s.idps || []).length
+      ? s.idps.join(", ") + (result.simulated ? "" : " — verify at live sign-in")
+      : (s.flowName && s.flowName !== "—" ? "email + password only" : "—")],
     ["MFA / methods", (s.authMethods || []).length ? s.authMethods.join(", ") : "—"],
     ["Conditional Access", s.conditionalAccess ? "report-only policy" : "—"],
     ["Company branding", result.simulated
@@ -777,26 +842,33 @@ function renderApplyResult(result) {
   $("#applyActions").hidden = false;
 }
 
-// Gap report on the final screen: analysis-time gaps + anything the apply left
-// as manual / failed / skipped, deduped by label. Each analysis gap includes
-// step-by-step "how to recreate manually in External ID" guidance.
+// Gap report on the final screen: merge analysis-time guidance with the actual
+// outcome for each stable action kind so failed or unselected work cannot retain
+// success-oriented validation text.
 function renderApplyGaps(result) {
   const analysisGaps = (state.analysis?.gaps || []).map((g) => ({
-    label: featureLabel(g.feature),
+    label: featureLabel(g.feature) + occurrenceSuffix(g, state.analysis?.gaps || []),
     reason: g.recommendation,
     availability: g.availability,
     notes: g.notes,
     docLink: g.docLink,
     manual: g.manual || null,
+    followUpType: g.followUpType,
+    actionKinds: g.actionKinds || [],
   }));
   const manual = (result.manualFollowUps || []).map((m) => ({
+    kind: m.kind,
     label: m.label,
-    reason: (m.status === "failed" ? "Failed: " : m.status === "skipped" ? "Skipped: " : "") + (m.reason || ""),
+    status: m.status,
+    reason: m.reason || "",
     manual: m.manual || null,
   }));
-  const seen = new Set();
-  const items = [];
-  [...manual, ...analysisGaps].forEach((x) => { if (!seen.has(x.label)) { seen.add(x.label); items.push(x); } });
+  const items = globalThis.PolicyTranslatorFollowUps.mergeApplyGapItems({
+    analysisGaps,
+    runtimeFollowUps: manual,
+    applied: result.applied || [],
+    simulated: result.simulated === true,
+  });
 
   const box = $("#applyGaps");
   if (!items.length) {
@@ -815,7 +887,7 @@ function renderApplyGaps(result) {
       const steps = x.manual.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join("");
       return `<li>${head}${badge}${guidance}
         <details class="gap-steps">
-          <summary>How to recreate this manually in External ID</summary>
+          <summary>${escapeHtml(x.manual.heading || "How to recreate this manually in External ID")}</summary>
           <p class="muted small">${escapeHtml(x.manual.note || "")}</p>
           <ol>${steps}</ol>
         </details></li>`;
@@ -877,6 +949,9 @@ async function startRealApply() {
   $("#applyHeading").textContent = "Connect to your External ID tenant";
   $("#applySubLabel").textContent = "One-time admin sign-in, then we provision for real.";
   $("#deviceStatus").textContent = "Requesting a sign-in code…";
+  $("#authPolicyNote").innerHTML = hasBrandingToWrite()
+    ? "Some tenants with <strong>Security Defaults</strong> block device-code sign-in (AADSTS530035). Do not disable production security controls. The generated package can run supported scripted actions interactively, but Company Branding must be applied manually in the Entra admin center."
+    : "Some tenants with <strong>Security Defaults</strong> block device-code sign-in (AADSTS530035). Do not disable production security controls. If blocked, download the generated package and run its interactive PowerShell scripts, or follow your tenant administrator's approved Conditional Access policy.";
   $("#deviceCode").textContent = "--------";
   $("#deviceAuth").hidden = false;
 
@@ -1078,6 +1153,7 @@ async function runRealApply() {
       body: JSON.stringify({
         sessionId: state.auth.sessionId,
         selectedKinds: orderedKinds,
+        selectedExtras: selectedModernizationExtras(),
         config: state.config,
         brandingIntent: hasBrandingToWrite(),
         brandingMode: state.migrationMode,
@@ -1126,7 +1202,9 @@ async function runRealApply() {
   }
 
   const failed = (result.applied || []).filter((a) => a.status === "failed").length;
-  const followUps = (result.manualFollowUps || []).length;
+  const followUps =
+    (result.manualFollowUps || []).length +
+    (state.analysis?.gaps || []).length;
   $("#applyHeading").textContent = failed || followUps ? "Apply completed with follow-ups" : "Applied to External ID";
   $("#applySubLabel").textContent = failed || followUps
     ? "Some steps need attention. Review every follow-up below before treating the migration as complete."
@@ -1206,7 +1284,12 @@ async function openScriptViewer() {
     const res = await apiFetch("/api/scripts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ json: state.rawJson, config: state.config }),
+      body: JSON.stringify({
+        json: state.rawJson,
+        config: state.config,
+        selectedKinds: orderedSelected(),
+        brandingIntent: hasBrandingToWrite(),
+      }),
     });
     const data = await res.json();
     if (!res.ok || !data.files) throw new Error((data.errors && data.errors[0] && data.errors[0].message) || "Could not generate scripts.");
@@ -1307,7 +1390,12 @@ $("#scriptDownloadBtn").addEventListener("click", async () => {
     const res = await apiFetch("/api/scripts-zip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ json: state.rawJson, config: state.config }),
+      body: JSON.stringify({
+        json: state.rawJson,
+        config: state.config,
+        selectedKinds: orderedSelected(),
+        brandingIntent: hasBrandingToWrite(),
+      }),
     });
     if (!res.ok) throw new Error("Download failed.");
     const blob = await res.blob();

@@ -91,9 +91,21 @@ try {
 
 # ─── VERIFY ───
 Write-Host "`n  Verifying..." -ForegroundColor Cyan
-Start-Sleep -Seconds 2
-$verify = Invoke-MgGraphRequest -Method GET `
-    -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Sms"
+$verify = $null
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+    Start-Sleep -Seconds $attempt
+    try {
+        $verify = Invoke-MgGraphRequest -Method GET `
+            -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Sms"
+        if ($verify.state -eq "enabled") { break }
+    } catch {
+        if ($attempt -eq 5) { throw }
+    }
+}
+if (-not $verify -or $verify.state -ne "enabled") {
+    Write-Host "  Verification failed: SMS is not enabled after the update." -ForegroundColor Red
+    exit 1
+}
 Write-Host "  SMS state: $($verify.state)" -ForegroundColor Green
 
 Write-Host "`n═══════════════════════════════════════════════════════" -ForegroundColor Cyan

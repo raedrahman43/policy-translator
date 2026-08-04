@@ -23,10 +23,15 @@ import { mapAllFeatures, StepKind } from "../mappers/featureMap";
 import { injectCustomAttributeStep } from "../generators/scriptGenerator";
 import { manualRecreationSteps } from "../generators/manualRecreation";
 import { deriveRequiredInputs } from "../web/inputRequirements";
-import { generate } from "../web/server";
+import { generate, resolveSelectedKinds } from "../web/server";
 import { buildFeatureView, buildReadiness } from "../web/analyzerPresentation";
-import { startDeviceCode, pollForToken } from "./graphClient";
-import { executeApply, scopesForKinds, ApplyConfig } from "./graphExecutor";
+import { startDeviceCode, pollForToken, TokenFallbackContext } from "./graphClient";
+import {
+  executeApply,
+  scopesForKinds,
+  ApplyConfig,
+  StepResult,
+} from "./graphExecutor";
 import { readSourceBranding, ImportedBranding } from "./branding";
 import { deepRepairMojibake } from "./textFix";
 import {
@@ -43,6 +48,128 @@ const PORT = process.env.PROTO_PORT ? Number(process.env.PROTO_PORT) : 4001;
 const LOOPBACK_HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`]);
 const csrfTokens = new Map<string, number>();
 let appStartedRecorded = false;
+
+const SIMULATION_FOLLOW_UPS: Record<string, { label: string; reason: string }> = {
+  "add-google-idp": {
+    label: "Google identity provider",
+    reason: "Graph cannot validate the provider secret or customer-visible outcome; complete a real Google sign-up/sign-in and verify token claims.",
+  },
+  "add-facebook-idp": {
+    label: "Facebook identity provider",
+    reason: "Graph cannot validate the provider secret or customer-visible outcome; complete a real Facebook sign-up/sign-in and verify token claims.",
+  },
+  "claims-mapping-policy": {
+    label: "Claims mapping policy",
+    reason: "Decode a real token and compare every expected claim; external-system claims still require a custom claims provider.",
+  },
+  "enable-sms-mfa": {
+    label: "SMS one-time-passcode (MFA) method",
+    reason: "Validate billing/telephony readiness, phone registration, scoped MFA enforcement, and a real SMS challenge.",
+  },
+  "create-ca-policy": {
+    label: "Conditional Access policy",
+    reason: "When applied, the policy starts report-only and requires protected-resource, user-scope, emergency-access exclusion, and sign-in-log validation.",
+  },
+  "enable-passkey": {
+    label: "Passkey (FIDO2) method",
+    reason: "Complete the password-account architecture, MFA enrollment, passkey profiles/targeting, Azure Front Door/custom domain, and credential-management experience.",
+  },
+  "enable-sspr": {
+    label: "Self-service password reset",
+    reason: "Complete one real Forgot password flow and verify the Email OTP, password update, sign-in, and branding experience.",
+  },
+};
+
+const REAL_APPLY_GUIDANCE_FEATURES: Record<string, string> = {
+  "add-google-idp": "signIn_idp_google",
+  "add-facebook-idp": "signIn_idp_facebook",
+  "claims-mapping-policy": "global_token_claimsMapping",
+  "enable-sspr": "passwordReset_recovery",
+  "enable-sms-mfa": "signIn_otp_phoneSms",
+  "create-ca-policy": "signIn_security_conditionalAccess",
+  "enable-passkey": "signIn_auth_passkey",
+  "create-custom-attributes": "signUp_attributes_custom",
+  "migrate-company-branding": "global_ux_tenantBranding",
+};
+
+export function simulationFollowUps(
+  selected: string[],
+  selectedExtras: Iterable<string>,
+): Array<{ kind: string; label: string; status: "manual"; reason: string }> {
+  const followUps = selected.flatMap((kind) => {
+    const definition = SIMULATION_FOLLOW_UPS[kind];
+    return definition
+      ? [{
+        kind,
+        label: definition.label,
+        status: "manual" as const,
+        reason: definition.reason,
+      }]
+      : [];
+  });
+  if ([...selectedExtras].includes("enable-email-otp")) {
+    followUps.push({
+      kind: "enable-email-otp",
+      label: "Email OTP authentication method",
+      status: "manual",
+      reason: "Choose and validate its journey role: primary passwordless sign-in, MFA, sign-up verification, or password reset.",
+    });
+  }
+  return followUps;
+}
+
+export function realApplyFollowUps(
+  applied: StepResult[],
+  selectedExtras: Iterable<string>,
+) {
+  const followUps = applied
+    .filter((result) =>
+      result.status === "manual" ||
+      result.status === "failed" ||
+      result.status === "skipped" ||
+      result.requiresFollowUp
+    )
+    .map((result) => {
+      const guidanceFeature = REAL_APPLY_GUIDANCE_FEATURES[result.kind] || result.kind;
+      const completed = result.status === "created" || result.status === "reused";
+      return {
+        kind: result.kind,
+        label: result.label,
+        status: result.status,
+        reason: result.message || "",
+        manual: manualRecreationSteps(
+          guidanceFeature,
+          result.message || result.label,
+          completed
+            ? result.message || "Validate this automated result in the customer journey."
+            : `${result.label} was not completed. Resolve the reported issue, complete the capability manually if needed, and re-run validation before rollout.`,
+          completed ? "validation" : "manual",
+        ),
+      };
+    });
+
+  const emailOtpResult = applied.find((result) => result.kind === "enable-email-otp");
+  if (
+    [...selectedExtras].includes("enable-email-otp") &&
+    emailOtpResult &&
+    (emailOtpResult.status === "created" || emailOtpResult.status === "reused")
+  ) {
+    followUps.push({
+      kind: "enable-email-otp",
+      label: "Email OTP authentication method",
+      status: "manual",
+      reason: "Email OTP is enabled at the tenant level, but you must choose and validate its journey role: primary passwordless sign-in, MFA, sign-up verification, or password reset.",
+      manual: manualRecreationSteps(
+        "signIn_otp_email",
+        "The selected modernization did not identify the Email OTP journey role.",
+        "Clarify and configure the intended user flow, Conditional Access policy, or SSPR experience.",
+        "manual",
+      ),
+    });
+  }
+
+  return followUps;
+}
 
 function recordTelemetry(
   req: Request,
@@ -211,6 +338,31 @@ function extractAnalyzerBranding(rawJson: unknown, features: Array<{ name: strin
   };
 }
 
+function followUpActionKinds(
+  mapping: ReturnType<typeof mapAllFeatures>["mapped"][number],
+  hasCustomAttributes: boolean,
+): string[] {
+  const foundational = new Set([
+    "create-native-app",
+    "create-user-flow-emailpassword",
+    "smoke-test-native-auth",
+  ]);
+  const kinds: string[] = mapping.steps
+    .map((step) => step.kind)
+    .filter((kind) => !foundational.has(kind));
+  if (
+    mapping.featureName === "signUp_attributes_custom" &&
+    hasCustomAttributes &&
+    mapping.steps.some((step) => step.kind === "create-user-flow-emailpassword")
+  ) {
+    kinds.push("create-custom-attributes");
+  }
+  if (mapping.featureName === "global_ux_tenantBranding") {
+    kinds.push("migrate-company-branding");
+  }
+  return [...new Set(kinds)];
+}
+
 // ─── Analyze: reuse the real engine, return what the wizard needs ────────────
 function analyze(rawJson: unknown) {
   const validation = validateAndNormalize(rawJson);
@@ -222,8 +374,8 @@ function analyze(rawJson: unknown) {
   const context = extractPolicyContext(policyName, features);
   const { mapped, unmapped } = mapAllFeatures(features);
 
-  const readiness = buildReadiness(rawJson, features);
   const featureView = buildFeatureView(features, mapped);
+  const readiness = buildReadiness(rawJson, features, featureView);
 
   // StepKind → the features that requested it (dedup)
   const stepReasons = new Map<string, string[]>();
@@ -244,9 +396,17 @@ function analyze(rawJson: unknown) {
     .filter((r) => r.gapReport)
     .map((r) => {
       const g = r.gapReport!;
-      const rec = manualRecreationSteps(g.feature, g.reason, g.recommendation);
+      const rec = manualRecreationSteps(
+        g.feature,
+        g.reason,
+        g.recommendation,
+        g.followUpType,
+      );
       return {
         feature: g.feature,
+        featureOccurrence: g.featureOccurrence,
+        followUpType: g.followUpType,
+        actionKinds: followUpActionKinds(r, context.customAttributes.length > 0),
         reason: g.reason,
         recommendation: g.recommendation,
         availability: g.availability,
@@ -334,7 +494,12 @@ app.post("/api/analyze", (req: Request, res: Response) => {
 app.post("/api/apply", (req: Request, res: Response) => {
   const startedAt = Date.now();
   try {
-    const selected: string[] = Array.isArray(req.body?.selectedKinds) ? req.body.selectedKinds : [];
+    const selected = resolveSelectedKinds(
+      Array.isArray(req.body?.selectedKinds) ? req.body.selectedKinds.map(String) : [],
+    );
+    const selectedExtras = new Set<string>(
+      Array.isArray(req.body?.selectedExtras) ? req.body.selectedExtras.map(String) : [],
+    );
     const config = (req.body?.config ?? {}) as Record<string, string>;
     const branding = (req.body?.branding ?? {}) as Record<string, string>;
 
@@ -375,6 +540,7 @@ app.post("/api/apply", (req: Request, res: Response) => {
       .filter((k) => ["enable-email-otp", "enable-sms-mfa", "enable-passkey"].includes(k))
       .map((k) => k.replace("enable-", ""));
 
+    const manualFollowUps = simulationFollowUps(selected, selectedExtras);
     const response = {
       simulated: true,
       appliedAt: now(),
@@ -382,13 +548,14 @@ app.post("/api/apply", (req: Request, res: Response) => {
         tenantId: config.tenantId || "<your-tenant-id>",
         appId: "—",
         appName: config.appName || "migrated-app",
-        flowName,
-        idps,
+        flowName: selected.includes("create-user-flow-emailpassword") ? flowName : "—",
+        idps: selected.includes("create-user-flow-emailpassword") ? idps : [],
         authMethods,
         conditionalAccess: selected.includes("create-ca-policy"),
         branding: { companyName: branding.companyName || config.appName || "Your app", accent: branding.accent || "#0067b8" },
       },
       applied,
+      manualFollowUps,
     };
     recordTelemetry(req, "simulation_completed", {
       durationBucket: bucketDuration(Date.now() - startedAt),
@@ -416,7 +583,12 @@ app.get("/api/health", (_req: Request, res: Response) => res.json({ status: "ok"
 function buildScripts(req: Request) {
   const rawJson = req.body?.json ?? req.body?.rawJson ?? req.body;
   const config = (req.body?.config ?? {}) as Record<string, string>;
-  const result = generate(rawJson, config);
+  const selectedKinds = Array.isArray(req.body?.selectedKinds)
+    ? req.body.selectedKinds.map(String)
+    : undefined;
+  const result = generate(rawJson, config, selectedKinds, {
+    brandingIntent: req.body?.brandingIntent === true,
+  });
   if ("error" in result) return { ok: false as const, errors: result.error };
   const files = [
     ...result.output.scripts.map((s) => ({ name: s.filename, content: s.content, kind: "script" as const })),
@@ -464,6 +636,7 @@ interface AuthSession {
   tenantId: string;
   deviceCode: string;
   scopes: string[];
+  fallbackContext: TokenFallbackContext;
   accessToken?: string;
   expiresAt?: number;
   createdAt: number;
@@ -481,7 +654,9 @@ app.post("/api/auth/start", async (req: Request, res: Response) => {
   try {
     pruneSessions();
     const tenantId = String(req.body?.tenantId || "").trim();
-    const selected: string[] = Array.isArray(req.body?.selectedKinds) ? req.body.selectedKinds : [];
+    const selected = resolveSelectedKinds(
+      Array.isArray(req.body?.selectedKinds) ? req.body.selectedKinds.map(String) : [],
+    );
     if (!tenantId) return res.status(400).json({ error: "tenantId is required." });
 
     // If the user set/imported branding, request the branding scope too so the
@@ -492,7 +667,17 @@ app.post("/api/auth/start", async (req: Request, res: Response) => {
     const scopes = scopesForKinds(kindsForScope);
     const dc = await startDeviceCode(tenantId, scopes);
     const sessionId = crypto.randomUUID();
-    authSessions.set(sessionId, { tenantId, deviceCode: dc.deviceCode, scopes, createdAt: Date.now() });
+    const fallbackContext: TokenFallbackContext =
+      req.body?.brandingIntent || req.body?.wantsBranding
+        ? "apply-with-branding"
+        : "apply";
+    authSessions.set(sessionId, {
+      tenantId,
+      deviceCode: dc.deviceCode,
+      scopes,
+      fallbackContext,
+      createdAt: Date.now(),
+    });
 
     res.json({
       sessionId,
@@ -516,7 +701,11 @@ app.post("/api/auth/poll", async (req: Request, res: Response) => {
     if (!session) return res.status(404).json({ status: "error", error: "unknown_session", description: "Sign-in session expired. Start again." });
     if (session.accessToken) return res.json({ status: "ready" });
 
-    const result = await pollForToken(session.tenantId, session.deviceCode);
+    const result = await pollForToken(
+      session.tenantId,
+      session.deviceCode,
+      session.fallbackContext,
+    );
     if (result.status === "ready") {
       session.accessToken = result.accessToken;
       session.expiresAt = result.expiresAt;
@@ -539,7 +728,13 @@ app.post("/api/branding/connect-start", async (req: Request, res: Response) => {
     const scopes = ["OrganizationalBranding.Read.All"];
     const dc = await startDeviceCode(tenantId, scopes);
     const sessionId = crypto.randomUUID();
-    authSessions.set(sessionId, { tenantId, deviceCode: dc.deviceCode, scopes, createdAt: Date.now() });
+    authSessions.set(sessionId, {
+      tenantId,
+      deviceCode: dc.deviceCode,
+      scopes,
+      fallbackContext: "branding-import",
+      createdAt: Date.now(),
+    });
 
     res.json({
       sessionId,
@@ -657,7 +852,12 @@ app.post("/api/apply-real", async (req: Request, res: Response) => {
       authSessions.delete(sessionId);
       return res.status(401).json({ error: "Your admin sign-in expired. Sign in again, then re-run the apply." });
     }
-    const selected: string[] = Array.isArray(req.body?.selectedKinds) ? req.body.selectedKinds : [];
+    const selected = resolveSelectedKinds(
+      Array.isArray(req.body?.selectedKinds) ? req.body.selectedKinds.map(String) : [],
+    );
+    const selectedExtras = new Set<string>(
+      Array.isArray(req.body?.selectedExtras) ? req.body.selectedExtras.map(String) : [],
+    );
     const analysisContext = (req.body?.analysisContext ?? {}) as { attributes?: unknown; claims?: unknown; customAttributes?: unknown };
     const brandingMeta = (req.body?.brandingMeta ?? {}) as Record<string, string>;
 
@@ -676,7 +876,7 @@ app.post("/api/apply-real", async (req: Request, res: Response) => {
     } as ApplyConfig;
 
     // Run the branding step only when there is branding to write.
-    const selectedForApply = finalBranding && !selected.includes("migrate-company-branding")
+    const selectedForApply: string[] = finalBranding
       ? [...selected, "migrate-company-branding"]
       : selected;
     const missing = missingApplyInputs(selectedForApply, config);
@@ -709,14 +909,7 @@ app.post("/api/apply-real", async (req: Request, res: Response) => {
     const authMethods = applied
       .filter((a) => ["enable-email-otp", "enable-sms-mfa", "enable-passkey"].includes(a.kind) && (a.status === "created" || a.status === "reused"))
       .map((a) => a.kind.replace("enable-", ""));
-    const manualFollowUps = applied
-      .filter((a) => a.status === "manual" || a.status === "failed" || a.status === "skipped" || a.requiresFollowUp)
-      .map((a) => ({
-        label: a.label,
-        status: a.status,
-        reason: a.message || "",
-        manual: manualRecreationSteps(a.kind, a.message || a.label, a.message || "Configure this feature manually in External ID."),
-      }));
+    const manualFollowUps = realApplyFollowUps(applied, selectedExtras);
 
     const response = {
       simulated: false,
@@ -725,8 +918,8 @@ app.post("/api/apply-real", async (req: Request, res: Response) => {
         tenantId: session.tenantId,
         appId: state.appId || "—",
         appName: config.appName || "migrated-app",
-        flowName: state.flowName || config.flowName || "SignUpSignIn",
-        idps,
+        flowName: state.flowId ? state.flowName || config.flowName || "SignUpSignIn" : "—",
+        idps: state.flowId ? idps : [],
         authMethods,
         conditionalAccess: applied.some((a) => a.kind === "create-ca-policy" && (a.status === "created" || a.status === "reused")),
         branding: {

@@ -74,14 +74,15 @@
     <section class="panel" id="panel-2" hidden>
       <div class="review-header">
         <div>
-          <h2>Migration readiness</h2>
+          <h2>Translator migration readiness</h2>
           <p class="muted" id="policyNameLabel"></p>
+          <p class="muted small" id="analyzerReadinessLabel"></p>
         </div>
         <div class="readiness-badge" id="readinessBadge">
           <div class="gauge" id="gauge"><span id="gaugePct">0%</span></div>
           <div class="readiness-meta">
             <span class="score" id="readinessScore">—</span>
-            <span class="muted small">readiness</span>
+            <span class="muted small">Translator readiness</span>
           </div>
         </div>
       </div>
@@ -97,6 +98,16 @@
               <tbody></tbody>
             </table>
           </div>
+        </div>
+
+        <div class="scope-boundary">
+          <strong>Important scope boundary</strong>
+          <span>
+            Policy Translator accelerates supported configuration; it does not automatically
+            convert arbitrary custom-policy branching, broker architectures, REST/government
+            API business logic, custom HTML/JavaScript, users/passwords/sessions, or SAML
+            policies that Policy Analyzer cannot detect.
+          </span>
         </div>
         <div class="review-col">
           <h3>Manual follow-ups <span class="muted small" id="gapCount"></span></h3>
@@ -162,6 +173,11 @@
                 and enter the code:</p>
               <div class="brand-device-code"><code id="brandDeviceCode">—</code><button class="btn-ghost small" id="brandCopyCode" type="button">Copy</button></div>
               <div class="brand-device-status" id="brandDeviceStatus">Waiting for sign-in…</div>
+              <div class="auth-policy-note">
+                If Security Defaults blocks device-code import, do not disable production
+                security controls. Use the manual branding controls and compare against the
+                source tenant's Company Branding in the Entra admin center.
+              </div>
               <button class="btn-ghost small" id="brandCancelImport" type="button">Cancel</button>
             </div>
             <div class="brand-import-result" id="brandImportResult" hidden></div>
@@ -259,6 +275,12 @@
       <div class="device-auth" id="deviceAuth" hidden>
         <h3>Sign in to your tenant</h3>
         <p class="muted small">One-time admin sign-in. We use Microsoft's device-code flow — no app registration, and your token never leaves the server.</p>
+        <div class="auth-policy-note" id="authPolicyNote">
+          Some tenants with <strong>Security Defaults</strong> block device-code sign-in
+          (AADSTS530035). Do not disable production security controls just for this tool.
+          If blocked, download the generated package and run its interactive PowerShell
+          scripts, or follow your tenant administrator's approved Conditional Access policy.
+        </div>
         <ol class="device-steps">
           <li>Open <a id="deviceLink" href="https://microsoft.com/devicelogin" target="_blank" rel="noopener">microsoft.com/devicelogin</a></li>
           <li>Enter this code:
@@ -391,6 +413,7 @@
     </div>
   </div>
 
+  <script src="followUpMerge.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

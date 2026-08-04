@@ -29,14 +29,14 @@ const FILE_DESCRIPTIONS = {
 const SCRIPT_META = {
   "01-create-native-app.ps1": { action: "Register a native app + service principal", scopes: ["Application.ReadWrite.All"] },
   "02-create-user-flow.ps1": { action: "Create the sign-up / sign-in user flow", scopes: ["EventListener.ReadWrite.All", "IdentityUserFlow.ReadWrite.All"] },
-  "03-smoke-test-native-auth.ps1": { action: "Run a read-only smoke test against the native-auth endpoint (makes no changes)", scopes: ["Organization.Read.All"] },
+  "03-smoke-test-native-auth.ps1": { action: "Verify the app-to-flow binding and run a read-only native-auth endpoint check", scopes: ["Organization.Read.All", "EventListener.Read.All"] },
   "04-add-google-idp.ps1": { action: "Create a Google identity provider and attach it to the user flow", scopes: ["IdentityProvider.ReadWrite.All", "EventListener.ReadWrite.All", "Organization.Read.All"] },
   "05-add-facebook-idp.ps1": { action: "Create a Facebook identity provider and attach it to the user flow", scopes: ["IdentityProvider.ReadWrite.All", "EventListener.ReadWrite.All"] },
   "07-enable-email-otp.ps1": { action: "Enable email one-time-passcode as an authentication method", scopes: ["Policy.ReadWrite.AuthenticationMethod"] },
   "08-claims-mapping-policy.ps1": { action: "Create a claims mapping policy and assign it to the app", scopes: ["Policy.ReadWrite.ApplicationConfiguration", "Application.ReadWrite.All"] },
   "09-enable-sspr.ps1": { action: "Enable self-service password reset (and its email OTP method)", scopes: ["EventListener.ReadWrite.All", "Policy.ReadWrite.AuthenticationMethod"] },
   "11-enable-sms-mfa.ps1": { action: "Enable SMS one-time-passcode as an MFA method", scopes: ["Policy.ReadWrite.AuthenticationMethod"] },
-  "12-create-ca-policy.ps1": { action: "Create a Conditional Access policy requiring MFA (report-only)", scopes: ["Policy.ReadWrite.ConditionalAccess"] },
+  "12-create-ca-policy.ps1": { action: "Create a Conditional Access policy requiring MFA (report-only)", scopes: ["Policy.Read.All", "Policy.ReadWrite.ConditionalAccess"] },
   "13-enable-passkey.ps1": { action: "Enable passkey (FIDO2) as an authentication method", scopes: ["Policy.ReadWrite.AuthenticationMethod"] },
   "14-create-custom-attributes.ps1": { action: "Create custom user attributes and add them to the sign-up flow", scopes: ["IdentityUserFlow.ReadWrite.All", "EventListener.ReadWrite.All"] },
 };
@@ -48,8 +48,10 @@ const SCOPE_DESCRIPTIONS = {
   "IdentityUserFlow.ReadWrite.All": "create and update custom user attributes",
   "Policy.ReadWrite.AuthenticationMethod": "configure authentication methods (email OTP, SMS, passkey)",
   "Policy.ReadWrite.ConditionalAccess": "create and update Conditional Access policies",
+  "Policy.Read.All": "read existing Conditional Access policies before reuse",
   "Policy.ReadWrite.ApplicationConfiguration": "configure claims mapping policies",
   "Organization.Read.All": "read tenant details (used to discover your domain)",
+  "EventListener.Read.All": "verify the application is bound to the expected user flow",
 };
 
 // Least-privilege admin role that can consent to each scope.
@@ -61,6 +63,7 @@ const SCOPE_ROLES = {
   "IdentityUserFlow.ReadWrite.All": "External ID user-flow administrator",
   "Policy.ReadWrite.AuthenticationMethod": "Authentication Policy Administrator",
   "Policy.ReadWrite.ConditionalAccess": "Conditional Access Administrator",
+  "Policy.Read.All": "Conditional Access Administrator",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -107,6 +110,11 @@ function guidanceHtml(note, docLink) {
   const link = safeDocLink(docLink);
   if (!note && !link) return "";
   return `<div class="feature-guidance">${note ? `<span>${escapeHtml(note)}</span>` : ""}${link ? `<a class="doc-link" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">Microsoft Learn</a>` : ""}</div>`;
+}
+
+function occurrenceSuffix(item, collection) {
+  if (!item?.occurrence && !item?.featureOccurrence) return "";
+  return ` · journey ${item.occurrence || item.featureOccurrence}`;
 }
 
 // ─── Step 1: Upload ───────────────────────────────────────────────────────────
@@ -198,6 +206,9 @@ async function parseAndAnalyze(text) {
 
 function renderReview(data) {
   $("#policyNameLabel").textContent = data.policyName;
+  $("#analyzerReadinessLabel").textContent = data.readiness.analyzerScore
+    ? `Policy Analyzer platform readiness: ${data.readiness.analyzerScore}`
+    : "Policy Analyzer platform readiness: not provided";
 
   // Gauge
   const pct = data.readiness.percent;
@@ -211,7 +222,7 @@ function renderReview(data) {
   const r = data.readiness;
   $("#statRow").innerHTML = `
     <div class="stat-card"><div class="num">${r.total}</div><div class="lbl">Features detected</div></div>
-    <div class="stat-card green"><div class="num">${r.available}</div><div class="lbl">Ready to migrate</div></div>
+    <div class="stat-card green"><div class="num">${r.ready}</div><div class="lbl">Ready to migrate</div></div>
     <div class="stat-card amber"><div class="num">${r.needsWork}</div><div class="lbl">Need attention</div></div>
     <div class="stat-card brand"><div class="num">${data.steps.length}</div><div class="lbl">Scripts generated</div></div>
   `;
@@ -220,7 +231,7 @@ function renderReview(data) {
   const tbody = $("#featureTable tbody");
   tbody.innerHTML = data.features.map((f) => `
     <tr>
-      <td><span class="feat-name">${escapeHtml(f.name)}</span><br><span class="muted small">${escapeHtml(f.description)}</span>${guidanceHtml(f.guidance, f.docLink)}</td>
+      <td><span class="feat-name">${escapeHtml(f.name)}</span>${occurrenceSuffix(f, data.features) ? `<span class="muted small">${escapeHtml(occurrenceSuffix(f, data.features))}</span>` : ""}<br><span class="muted small">${escapeHtml(f.description)}</span>${guidanceHtml(f.guidance, f.docLink)}</td>
       <td><span class="pill ${f.status}">${escapeHtml(f.statusLabel)}</span></td>
     </tr>
   `).join("");
@@ -243,7 +254,7 @@ function renderReview(data) {
     gapList.innerHTML = `<li class="empty">No manual work — everything detected is automatable.</li>`;
   } else {
     gapList.innerHTML = data.gaps.map((g) => `
-      <li><strong>${escapeHtml(g.feature)}</strong>${escapeHtml(g.recommendation)}${guidanceHtml(g.notes, g.docLink)}</li>
+      <li><strong>${escapeHtml(g.feature + occurrenceSuffix(g, data.gaps))}</strong>${escapeHtml(g.recommendation)}${guidanceHtml(g.notes, g.docLink)}</li>
     `).join("");
   }
 

@@ -5,12 +5,20 @@ import { filenameForStep } from "../generators/scriptGenerator";
 import { mapFeatureToExternalId, StepKind } from "../mappers/featureMap";
 import { AnalysisFeature } from "../types";
 
-type Bucket = "Automated" | "Guided manual" | "No generated action" | "Unaccounted";
+type Bucket =
+  | "Automated"
+  | "Guided manual"
+  | "Not currently supported"
+  | "Architecture redesign"
+  | "No generated action"
+  | "Unaccounted";
 type Verification =
   | "Live verified"
   | "Automated; live validation required"
   | "Partial automation with required follow-up"
   | "Manual"
+  | "Not currently supported"
+  | "Architecture redesign"
   | "Platform/default behavior";
 
 interface DashboardRow {
@@ -43,7 +51,7 @@ const VERIFICATION: Record<StepKind, Verification> = {
   "create-ca-policy": "Partial automation with required follow-up",
   "enable-passkey": "Partial automation with required follow-up",
   "claims-mapping-policy": "Automated; live validation required",
-  "enable-sspr": "Partial automation with required follow-up",
+  "enable-sspr": "Automated; live validation required",
   "create-custom-attributes": "Automated; live validation required",
 };
 
@@ -53,6 +61,8 @@ const VERIFICATION_RANK: Record<Verification, number> = {
   "Automated; live validation required": 1,
   "Partial automation with required follow-up": 2,
   Manual: 3,
+  "Not currently supported": 4,
+  "Architecture redesign": 5,
 };
 
 function syntheticFeature(name: string): AnalysisFeature {
@@ -74,6 +84,20 @@ function weakestVerification(steps: StepKind[]): Verification {
 function classify(feature: string): DashboardRow {
   const webOnly = WEB_ONLY_AUTOMATION[feature];
   if (webOnly) return { feature, ...webOnly };
+  if (feature === "signIn_otp_email") {
+    const kinds: StepKind[] = [
+      "create-native-app",
+      "enable-email-otp",
+    ];
+    return {
+      feature,
+      bucket: "Automated",
+      steps: kinds,
+      scripts: kinds.map(filenameForStep),
+      verification: "Partial automation with required follow-up",
+      note: "Context-dependent coverage: the tenant Email OTP method is automated. Primary passwordless Email OTP still requires explicit user-flow configuration, while MFA enforcement requires a scoped report-only Conditional Access design and validation.",
+    };
+  }
   const result = mapFeatureToExternalId(syntheticFeature(feature));
   if (!result) {
     return {
@@ -92,7 +116,11 @@ function classify(feature: string): DashboardRow {
       bucket: "Automated",
       steps: kinds,
       scripts: kinds.map(filenameForStep),
-      verification: result.gapReport ? "Partial automation with required follow-up" : weakestVerification(kinds),
+      verification: result.gapReport?.followUpType === "validation"
+        ? "Automated; live validation required"
+        : result.gapReport
+          ? "Partial automation with required follow-up"
+          : weakestVerification(kinds),
       note: [
         result.steps.map((step) => step.reason).join("; "),
         result.gapReport?.recommendation,
@@ -100,6 +128,26 @@ function classify(feature: string): DashboardRow {
     };
   }
   if (result.gapReport || result.category === "gap") {
+    if (result.gapReport?.availability === "NotCurrentlySupported") {
+      return {
+        feature,
+        bucket: "Not currently supported",
+        steps: [],
+        scripts: [],
+        verification: "Not currently supported",
+        note: result.gapReport.recommendation,
+      };
+    }
+    if (result.gapReport?.availability === "ArchitectureIncompatible") {
+      return {
+        feature,
+        bucket: "Architecture redesign",
+        steps: [],
+        scripts: [],
+        verification: "Architecture redesign",
+        note: result.gapReport.recommendation,
+      };
+    }
     return {
       feature,
       bucket: "Guided manual",
@@ -149,6 +197,8 @@ function main(): void {
   const counts = {
     automated: rows.filter((row) => row.bucket === "Automated").length,
     guidedManual: rows.filter((row) => row.bucket === "Guided manual").length,
+    notCurrentlySupported: rows.filter((row) => row.bucket === "Not currently supported").length,
+    architectureRedesign: rows.filter((row) => row.bucket === "Architecture redesign").length,
     noGeneratedAction: rows.filter((row) => row.bucket === "No generated action").length,
     unaccounted: rows.filter((row) => row.bucket === "Unaccounted").length,
     total: rows.length,
@@ -165,6 +215,8 @@ function main(): void {
     "pie showData",
     `  \"Automated\" : ${counts.automated}`,
     `  \"Guided manual\" : ${counts.guidedManual}`,
+    `  \"Not currently supported\" : ${counts.notCurrentlySupported}`,
+    `  \"Architecture redesign\" : ${counts.architectureRedesign}`,
     `  \"No generated action\" : ${counts.noGeneratedAction}`,
     `  \"Unaccounted\" : ${counts.unaccounted}`,
     "```",
@@ -174,15 +226,17 @@ function main(): void {
     `| Total Analyzer feature keys | ${counts.total} |`,
     `| Automated | ${counts.automated} |`,
     `| Guided manual | ${counts.guidedManual} |`,
+    `| Not currently supported | ${counts.notCurrentlySupported} |`,
+    `| Architecture redesign | ${counts.architectureRedesign} |`,
     `| No generated action | ${counts.noGeneratedAction} |`,
     `| Unaccounted | ${counts.unaccounted} |`,
     "",
     "## Feature details",
     "",
-    "| Analyzer feature | Migration path | Verification | Generated action |",
-    "| --- | --- | --- | --- |",
+    "| Analyzer feature | Migration path | Verification | Generated action | Notes |",
+    "| --- | --- | --- | --- | --- |",
     ...rows.map((row) =>
-      `| \`${escapeCell(row.feature)}\` | ${row.bucket} | ${row.verification} | ${row.scripts.length ? row.scripts.map((file) => `\`${file}\``).join(", ") : "—"} |`
+      `| \`${escapeCell(row.feature)}\` | ${row.bucket} | ${row.verification} | ${row.scripts.length ? row.scripts.map((file) => `\`${file}\``).join(", ") : "—"} | ${escapeCell(row.note)} |`
     ),
     "",
     "## Interpreting verification",
@@ -191,6 +245,8 @@ function main(): void {
     "- **Automated; live validation required:** implemented using documented APIs and covered by deterministic/mocked tests, but the final tenant/provider behavior must be verified.",
     "- **Partial automation with required follow-up:** the tool configures the safe automated portion and emits explicit follow-up steps.",
     "- **Guided manual:** the platform supports a path, but the tool does not claim an automated write.",
+    "- **Not currently supported:** External ID has no current supported equivalent for the detected capability.",
+    "- **Architecture redesign:** the source pattern has no direct External ID equivalent and requires an explicit target design.",
     "- **No generated action:** External ID handles the behavior by default or outside the script package.",
     "",
   ].join("\n");

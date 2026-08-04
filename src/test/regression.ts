@@ -76,6 +76,9 @@ interface TestCase {
   expectValid: boolean;
   expectScripts?: string[]; // exact set (order-independent)
   expectGaps?: string[]; // feature names that must appear in the gap report
+  expectGapExcludes?: string[];
+  expectReadmeContains?: string[];
+  expectReadmeExcludes?: string[];
 }
 
 // ─── Synthetic test cases (these DEFINE correct behavior) ─────────────────────
@@ -92,12 +95,14 @@ const CASES: TestCase[] = [
     policy: policy("B2C_1A_Google", [...emailBase, feat("signIn_idp_google")]),
     expectValid: true,
     expectScripts: [S.app, S.flow, S.smoke, S.google],
+    expectGaps: ["Why live validation is still required"],
   },
   {
     name: "Facebook social sign-in (05)",
     policy: policy("B2C_1A_Facebook", [...emailBase, feat("signIn_idp_facebook")]),
     expectValid: true,
     expectScripts: [S.app, S.flow, S.smoke, S.facebook],
+    expectGaps: ["Why live validation is still required"],
   },
   {
     name: "Custom OIDC sign-in is an honest manual gap",
@@ -107,10 +112,147 @@ const CASES: TestCase[] = [
     expectGaps: ["signIn_idp_customOidc"],
   },
   {
-    name: "Email OTP MFA (07)",
+    name: "Ambiguous Email OTP enables only the safe tenant method",
     policy: policy("B2C_1A_EmailOtp", [...emailBase, feat("signIn_otp_email")]),
     expectValid: true,
     expectScripts: [S.app, S.flow, S.smoke, S.emailOtp],
+    expectGaps: ["signIn_otp_email"],
+  },
+  {
+    name: "Email OTP MFA requires scoped Conditional Access follow-up",
+    policy: policy("B2C_1A_EmailOtpMfa", [
+      ...emailBase,
+      {
+        name: "signIn_otp_email",
+        description: "MFA via email one-time passcode",
+        reason: "Email OTP is required as a second factor during sign-in",
+        recommendation: "Enable Email OTP and require MFA.",
+        externalIdAvailability: "Available",
+      },
+    ]),
+    expectValid: true,
+    expectScripts: [S.app, S.flow, S.smoke, S.emailOtp],
+    expectGaps: ["signIn_otp_email"],
+  },
+  {
+    name: "Primary Email OTP remains partial until the user flow supports it",
+    policy: policy("B2C_1A_PrimaryEmailOtp", [
+      {
+        name: "signIn_otp_email",
+        description: "Passwordless primary sign-in with email one-time passcode",
+        reason: "Users sign in using an email one-time passcode each time",
+        recommendation: "Use Email OTP as the primary user-flow provider.",
+        externalIdAvailability: "Available",
+      },
+    ]),
+    expectValid: true,
+    expectScripts: [S.app, S.emailOtp],
+    expectGaps: ["signIn_otp_email"],
+    expectReadmeContains: ["does not resolve the primary Email OTP application/user-flow architecture"],
+    expectReadmeExcludes: ["printed by script 02"],
+  },
+  {
+    name: "Mixed primary Email OTP and passkey requires an architecture choice",
+    policy: policy("B2C_1A_PrimaryOtpPasskey", [
+      {
+        name: "signIn_otp_email",
+        description: "Passwordless primary sign-in with email one-time passcode",
+        reason: "Users sign in using an email one-time passcode each time",
+        recommendation: "Use Email OTP as the primary user-flow provider.",
+        externalIdAvailability: "Available",
+      },
+      feat("signIn_auth_passkey"),
+    ]),
+    expectValid: true,
+    expectScripts: [S.app, S.emailOtp, S.passkey],
+    expectGaps: ["signIn_otp_email", "signIn_auth_passkey"],
+    expectReadmeContains: ["does not resolve the primary Email OTP application/user-flow architecture"],
+    expectReadmeExcludes: ["application code uses MSAL's native auth API"],
+  },
+  {
+    name: "Mixed primary Email OTP, passkey, and attributes does not create a password flow",
+    policy: policy("B2C_1A_PrimaryOtpPasskeyAttributes", [
+      {
+        name: "signIn_otp_email",
+        description: "Passwordless primary sign-in with email one-time passcode",
+        reason: "Users sign in using an email one-time passcode each time",
+        recommendation: "Use Email OTP as the primary user-flow provider.",
+        externalIdAvailability: "Available",
+      },
+      feat("signIn_auth_passkey"),
+      {
+        name: "signUp_attributes_custom",
+        description: "Collect extension_loyaltyTier",
+        reason: "Custom attribute extension_loyaltyTier detected",
+        recommendation: "Add the custom attribute to the chosen user flow.",
+        externalIdAvailability: "Available",
+      },
+    ]),
+    expectValid: true,
+    expectScripts: [S.app, S.emailOtp, S.passkey],
+    expectGaps: ["signIn_otp_email", "signIn_auth_passkey", "signUp_attributes_custom"],
+    expectReadmeContains: ["does not resolve the primary Email OTP application/user-flow architecture"],
+  },
+  {
+    name: "Primary Email OTP plus Google preserves architecture warning",
+    policy: policy("B2C_1A_PrimaryOtpGoogle", [
+      {
+        name: "signIn_otp_email",
+        description: "Passwordless primary sign-in with email one-time passcode",
+        reason: "Users sign in using an email one-time passcode each time",
+        recommendation: "Use Email OTP as the primary user-flow provider.",
+        externalIdAvailability: "Available",
+      },
+      feat("signIn_idp_google"),
+    ]),
+    expectValid: true,
+    expectScripts: [S.app, S.emailOtp],
+    expectGaps: ["signIn_otp_email", "signIn_idp_google"],
+    expectReadmeContains: ["does not resolve the primary Email OTP application/user-flow architecture"],
+    expectReadmeExcludes: ["application code uses MSAL's native auth API"],
+  },
+  {
+    name: "Primary Email OTP plus custom attributes avoids a password flow",
+    policy: policy("B2C_1A_PrimaryOtpCustomAttributes", [
+      {
+        name: "signIn_otp_email",
+        description: "Passwordless primary sign-in with email one-time passcode",
+        reason: "Users sign in using an email one-time passcode each time",
+        recommendation: "Use Email OTP as the primary user-flow provider.",
+        externalIdAvailability: "Available",
+      },
+      {
+        name: "signUp_attributes_custom",
+        description: "Collect extension_loyaltyTier",
+        reason: "Custom attribute extension_loyaltyTier detected",
+        recommendation: "Add the custom attribute to the sign-up page.",
+        externalIdAvailability: "Available",
+      },
+    ]),
+    expectValid: true,
+    expectScripts: [S.app, S.emailOtp],
+    expectGaps: ["signIn_otp_email", "signUp_attributes_custom"],
+    expectGapExcludes: ["Custom attributes were created and added automatically"],
+    expectReadmeContains: ["does not resolve the primary Email OTP application/user-flow architecture"],
+    expectReadmeExcludes: ["application code uses MSAL's native auth API"],
+  },
+  {
+    name: "Primary Email OTP plus Google and SSPR chooses the password architecture",
+    policy: policy("B2C_1A_PrimaryOtpGoogleSspr", [
+      {
+        name: "signIn_otp_email",
+        description: "Passwordless primary sign-in with email one-time passcode",
+        reason: "Users sign in using an email one-time passcode each time",
+        recommendation: "Use Email OTP as the primary user-flow provider.",
+        externalIdAvailability: "Available",
+      },
+      feat("signIn_idp_google"),
+      feat("passwordReset_recovery"),
+    ]),
+    expectValid: true,
+    expectScripts: [S.app, S.flow, S.smoke, S.google, S.emailOtp, S.sspr],
+    expectGaps: ["signIn_otp_email"],
+    expectReadmeContains: ["does not resolve the primary Email OTP application/user-flow architecture"],
   },
   {
     name: "Claims mapping (08)",
@@ -150,6 +292,15 @@ const CASES: TestCase[] = [
     expectScripts: [S.app, S.flow, S.smoke, S.passkey],
   },
   {
+    name: "Passkey-only package leaves the password account model explicit",
+    policy: policy("B2C_1A_PasskeyOnly", [feat("signIn_auth_passkey")]),
+    expectValid: true,
+    expectScripts: [S.app, S.passkey],
+    expectGaps: ["signIn_auth_passkey"],
+    expectReadmeContains: ["does not choose or create the required email-password versus username-password"],
+    expectReadmeExcludes: ["user flow name"],
+  },
+  {
     name: "Custom attributes (no extra script)",
     policy: policy("B2C_1A_CustomAttrs", [feat("signIn_auth_emailPassword"), feat("signUp_attributes_custom")]),
     expectValid: true,
@@ -180,6 +331,55 @@ const CASES: TestCase[] = [
     ]),
     expectValid: true,
     expectScripts: [S.app, S.flow, S.smoke],
+  },
+  {
+    name: "No-op-only package reports no required tenant changes",
+    policy: policy("B2C_1A_RefreshOnly", [feat("global_token_refreshToken")]),
+    expectValid: true,
+    expectScripts: [],
+    expectReadmeContains: ["No tenant or application changes are required"],
+    expectReadmeExcludes: ["Use `gap-report.md`"],
+  },
+  {
+    name: "Branding-only package points to port 4001",
+    policy: policy("B2C_1A_BrandingOnly", [feat("global_ux_tenantBranding")]),
+    expectValid: true,
+    expectScripts: [],
+    expectReadmeContains: ["Port 4001 branding apply", "port-4001 guided apply experience"],
+  },
+  {
+    name: "Branding plus manual gaps keeps both workstreams visible",
+    policy: policy("B2C_1A_BrandingOidc", [
+      feat("global_ux_tenantBranding"),
+      feat("signIn_idp_customOidc"),
+    ]),
+    expectValid: true,
+    expectScripts: [],
+    expectGaps: ["signIn_idp_customOidc"],
+    expectReadmeContains: ["port-4001 guided apply experience", "gap-report.md"],
+  },
+  {
+    name: "Branding remains visible alongside generated scripts",
+    policy: policy("B2C_1A_EmailBranding", [...emailBase, feat("global_ux_tenantBranding")]),
+    expectValid: true,
+    expectScripts: [S.app, S.flow, S.smoke],
+    expectReadmeContains: ["Port 4001 branding apply", "Company Branding is not emitted as a PowerShell script"],
+  },
+  {
+    name: "Claims-only package describes token integration rather than a user flow",
+    policy: policy("B2C_1A_ClaimsOnly", [feat("global_token_claimsMapping")]),
+    expectValid: true,
+    expectScripts: [S.app, S.claims],
+    expectReadmeContains: ["does not create a sign-up/sign-in user flow", "compare every expected claim"],
+    expectReadmeExcludes: ["user flow name"],
+  },
+  {
+    name: "Conditional-Access-only package describes protected-resource validation",
+    policy: policy("B2C_1A_CaOnly", [feat("signIn_security_conditionalAccess")]),
+    expectValid: true,
+    expectScripts: [S.app, S.ca],
+    expectReadmeContains: ["report-only Conditional Access policy", "protected resource"],
+    expectReadmeExcludes: ["required primary-sign-in user flow"],
   },
   {
     name: "Un-automatable features surface in gap report",
@@ -218,7 +418,7 @@ const CASES: TestCase[] = [
       S.app, S.flow, S.smoke, S.google, S.facebook,
       S.emailOtp, S.claims, S.sspr, S.sms, S.ca, S.passkey,
     ],
-    expectGaps: ["signIn_idp_apple", "signIn_idp_customOidc"],
+    expectGaps: ["signIn_idp_apple", "signIn_idp_customOidc", "signIn_otp_email"],
   },
   // ── Negative cases: malformed input must be rejected, not crash ──
   {
@@ -385,10 +585,69 @@ function runSyntheticCase(tc: TestCase): void {
     for (const g of tc.expectGaps) {
       check(tc.name, report.includes(g), `expected gap "${g}" missing from gap report`);
     }
+    for (const excluded of tc.expectGapExcludes || []) {
+      check(tc.name, !report.includes(excluded), `gap report unexpectedly included: ${excluded}`);
+    }
   }
 
   // 6. README present
   check(tc.name, typeof res.output.readme === "string" && res.output.readme.length > 0, "README missing or empty");
+  check(
+    tc.name,
+    res.output.readme.includes("What this package does not convert automatically"),
+    "README omitted the explicit migration boundary section",
+  );
+  for (const expected of tc.expectReadmeContains || []) {
+    check(tc.name, res.output.readme.includes(expected), `README missing expected text: ${expected}`);
+  }
+  for (const excluded of tc.expectReadmeExcludes || []) {
+    check(tc.name, !res.output.readme.includes(excluded), `README unexpectedly included: ${excluded}`);
+  }
+
+  const passkeyScript = scripts.find((script) => script.filename === S.passkey);
+  if (passkeyScript) {
+    check(
+      tc.name,
+      passkeyScript.content.includes("Azure Front Door"),
+      "passkey guidance omitted the Azure Front Door prerequisite",
+    );
+    check(
+      tc.name,
+      passkeyScript.content.includes("isSelfServiceRegistrationAllowed") &&
+        passkeyScript.content.includes("did not modify passkey profiles or target assignments"),
+      "passkey script did not preserve profile/target assignments as an explicit follow-up",
+    );
+  }
+  const emailOtpScript = scripts.find((script) => script.filename === S.emailOtp);
+  if (emailOtpScript) {
+    check(
+      tc.name,
+      emailOtpScript.content.includes('$currentConfig.allowExternalIdToUseEmailOtp -eq "enabled"'),
+      "Email OTP script did not verify the External ID-specific enablement flag",
+    );
+  }
+  const smsScript = scripts.find((script) => script.filename === S.sms);
+  if (smsScript) {
+    check(
+      tc.name,
+      smsScript.content.includes("Verification failed: SMS is not enabled after the update."),
+      "SMS script did not enforce its verification readback",
+    );
+  }
+  const flowScript = scripts.find((script) => script.filename === S.flow);
+  if (flowScript) {
+    check(
+      tc.name,
+      flowScript.content.includes("Sign-up page labels and required/write settings reconciled."),
+      "user-flow script omitted complete page-input reconciliation",
+    );
+    check(
+      tc.name,
+      flowScript.content.includes("$attributesConverged") &&
+        flowScript.content.includes("$pageSettingsConverged"),
+      "user-flow script omitted bounded replication retries",
+    );
+  }
 
   // 7. Engine parity: web script set == CLI script set
   const webNames = sortedNames(scripts);
@@ -491,6 +750,230 @@ function runAnalyzerGuidanceCompatibility(): void {
     check(name, report.includes("OnTokenIssuanceStart"), "external claims did not surface custom-extension guidance");
   }
 
+  if (!failures.some((failure) => failure.case === name)) passCount++;
+}
+
+function runSelectedPlanCompatibility(): void {
+  const name = "[compat] selected migration plan";
+  const raw = policy("B2C_1A_SelectedPlan", [
+    ...emailBase,
+    feat("signIn_idp_google"),
+  ]);
+  const generated = generate(raw, {}, ["create-native-app", "enable-passkey"]);
+  check(name, !("error" in generated), "selected plan failed generation");
+  if (!("error" in generated)) {
+    check(
+      name,
+      setsEqual(sortedNames(generated.output.scripts), [S.app, S.passkey]),
+      `selected package included unexpected scripts: ${sortedNames(generated.output.scripts).join(", ")}`,
+    );
+    check(name, !generated.output.readme.includes("Google IdP"), "selected package retained a deselected Google action");
+    check(name, Boolean(generated.output.gapReport?.includes("signIn_auth_passkey")), "selected passkey follow-up was missing");
+    check(
+      name,
+      Boolean(generated.output.gapReport?.includes("automated action was not selected")),
+      "selected package did not explain that omitted source actions were unselected",
+    );
+    check(
+      name,
+      !generated.output.gapReport?.includes("Google was configured automatically"),
+      "selected package described a deselected Google action as automated",
+    );
+  }
+
+  const sspr = generate(
+    policy("B2C_1A_SelectedSspr", [feat("global_token_refreshToken")]),
+    {},
+    ["enable-sspr"],
+  );
+  check(name, !("error" in sspr), "selected SSPR plan failed generation");
+  if (!("error" in sspr)) {
+    check(
+      name,
+      setsEqual(sortedNames(sspr.output.scripts), [S.app, S.flow, S.sspr]),
+      `selected SSPR package missed dependencies: ${sortedNames(sspr.output.scripts).join(", ")}`,
+    );
+    const flowScript = sspr.output.scripts.find((script) => script.filename === S.flow);
+    check(
+      name,
+      Boolean(flowScript?.content.includes('id                    = "email"')) &&
+        Boolean(flowScript?.content.includes('id                    = "displayName"')),
+      "selected SSPR package did not match live apply's baseline flow attributes",
+    );
+  }
+
+  const emailOtp = generate(
+    policy("B2C_1A_SelectedEmailOtp", [feat("global_token_refreshToken")]),
+    {},
+    ["enable-email-otp"],
+  );
+  check(name, !("error" in emailOtp), "selected Email OTP plan failed generation");
+  if (!("error" in emailOtp)) {
+    check(
+      name,
+      setsEqual(sortedNames(emailOtp.output.scripts), [S.app, S.emailOtp]),
+      `selected Email OTP package missed dependencies: ${sortedNames(emailOtp.output.scripts).join(", ")}`,
+    );
+    check(
+      name,
+      Boolean(emailOtp.output.gapReport?.includes("selected modernization")),
+      "selected Email OTP package omitted the journey-mode follow-up",
+    );
+  }
+
+  const customAttributes = generate(
+    policy("B2C_1A_DeselectedAttributes", [
+      feat("signIn_auth_emailPassword"),
+      {
+        name: "signUp_attributes_custom",
+        description: "Collect extension_loyaltyTier",
+        reason: "Custom attribute extension_loyaltyTier detected",
+        recommendation: "Create the custom attribute.",
+        externalIdAvailability: "Available",
+      },
+    ]),
+    {},
+    ["create-native-app", "create-user-flow-emailpassword", "smoke-test-native-auth"],
+  );
+  check(name, !("error" in customAttributes), "deselected custom-attribute plan failed generation");
+  if (!("error" in customAttributes)) {
+    check(
+      name,
+      !sortedNames(customAttributes.output.scripts).includes(S.customAttrs),
+      "deselected custom attributes were re-injected into the package",
+    );
+    check(
+      name,
+      Boolean(customAttributes.output.gapReport?.includes("automated action was not selected")),
+      "deselected custom attributes did not retain an honest unselected-capability gap",
+    );
+    check(
+      name,
+      !customAttributes.output.gapReport?.includes("Custom attributes were created and added automatically"),
+      "deselected custom attributes retained success-oriented validation guidance",
+    );
+  }
+
+  const appleGap = generate(
+    policy("B2C_1A_SelectedAppleGap", [
+      ...emailBase,
+      feat("signIn_idp_apple"),
+    ]),
+    {},
+    ["create-native-app", "create-user-flow-emailpassword", "smoke-test-native-auth"],
+  );
+  check(name, !("error" in appleGap), "selected Apple-gap package failed generation");
+  if (!("error" in appleGap)) {
+    check(
+      name,
+      Boolean(appleGap.output.gapReport?.includes("signIn_idp_apple")),
+      "selected package dropped a manual-only Analyzer gap",
+    );
+  }
+
+  const deselectedPartialGap = generate(
+    policy("B2C_1A_DeselectedPasskeyGap", [
+      ...emailBase,
+      feat("signIn_auth_passkey"),
+    ]),
+    {},
+    ["create-native-app", "create-user-flow-emailpassword", "smoke-test-native-auth"],
+  );
+  check(name, !("error" in deselectedPartialGap), "selected partial-gap package failed generation");
+  if (!("error" in deselectedPartialGap)) {
+    check(
+      name,
+      Boolean(deselectedPartialGap.output.gapReport?.includes("signIn_auth_passkey")),
+      "selected package dropped a mandatory gap from a partially automated source feature",
+    );
+    check(
+      name,
+      !sortedNames(deselectedPartialGap.output.scripts).includes(S.passkey),
+      "selected package retained the deselected passkey script",
+    );
+    check(
+      name,
+      Boolean(deselectedPartialGap.output.gapReport?.includes("automated action was not selected")),
+      "deselected partial action retained success-oriented follow-up wording",
+    );
+  }
+
+  const branding = generate(
+    policy("B2C_1A_SelectedBranding", [feat("global_ux_tenantBranding")]),
+    {},
+    [],
+  );
+  check(name, !("error" in branding), "selected branding-only package failed generation");
+  if (!("error" in branding)) {
+    check(
+      name,
+      !branding.output.readme.includes("Port 4001 branding apply"),
+      "selected package claimed deselected branding would be applied",
+    );
+    check(
+      name,
+      Boolean(branding.output.gapReport?.includes("automated action was not selected")),
+      "selected package did not report source branding as unselected",
+    );
+    check(
+      name,
+      !branding.output.gapReport?.includes("Branding was applied through the guided experience"),
+      "selected package retained success-oriented branding guidance",
+    );
+  }
+
+  const selectedSourceBranding = generate(
+    policy("B2C_1A_SelectedSourceBranding", [feat("global_ux_tenantBranding")]),
+    {},
+    [],
+    { brandingIntent: true },
+  );
+  check(name, !("error" in selectedSourceBranding), "selected source-branding package failed generation");
+  if (!("error" in selectedSourceBranding)) {
+    check(
+      name,
+      selectedSourceBranding.output.readme.includes("Port 4001 branding apply"),
+      "explicitly selected source branding lost its guided apply path",
+    );
+    check(
+      name,
+      Boolean(selectedSourceBranding.output.gapReport?.includes("Why live validation is still required")),
+      "explicitly selected source branding lost its validation-only classification",
+    );
+  }
+
+  const selectedBranding = generate(
+    policy("B2C_1A_SelectedManualBranding", [feat("global_token_refreshToken")]),
+    {},
+    [],
+    { brandingIntent: true },
+  );
+  check(name, !("error" in selectedBranding), "selected manual-branding package failed generation");
+  if (!("error" in selectedBranding)) {
+    check(
+      name,
+      selectedBranding.output.readme.includes("Port 4001 branding apply"),
+      "selected package omitted manual/imported branding guidance",
+    );
+  }
+
+  const ssprPolicy = policy("B2C_1A_CliSsprBaseline", [feat("passwordReset_recovery")]);
+  const ssprValidation = validateAndNormalize(ssprPolicy);
+  const ssprContext = extractPolicyContext(ssprValidation.policyName, ssprValidation.features);
+  const ssprMapped = mapAllFeatures(ssprValidation.features).mapped;
+  const ssprCliOutput = generatePackage(
+    ssprValidation.policyName,
+    ssprMapped,
+    cliConfig(ssprValidation.policyName, ssprValidation.features),
+    ssprContext,
+  );
+  const ssprCliFlow = ssprCliOutput.scripts.find((script) => script.filename === S.flow);
+  check(
+    name,
+    Boolean(ssprCliFlow?.content.includes('id                    = "email"')) &&
+      Boolean(ssprCliFlow?.content.includes('id                    = "displayName"')),
+    "direct/CLI package generation omitted baseline Email + Password flow attributes",
+  );
   if (!failures.some((failure) => failure.case === name)) passCount++;
 }
 
@@ -696,6 +1179,11 @@ function main(): void {
   const compatBefore = failures.length;
   runAnalyzerGuidanceCompatibility();
   console.log(`  ${failures.length === compatBefore ? "PASS" : "FAIL"}  enriched statuses, notes, links, and gap guidance`);
+
+  console.log("\nSelected migration plan compatibility:");
+  const selectedBefore = failures.length;
+  runSelectedPlanCompatibility();
+  console.log(`  ${failures.length === selectedBefore ? "PASS" : "FAIL"}  downloaded package matches selected actions`);
 
   console.log("\nFull Analyzer coverage (every feature key, robustness + accounting):");
   const covBefore = failures.length;

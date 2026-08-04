@@ -54,6 +54,32 @@ function Show-CaLicensingHelp {
     Write-Host "  -----------------------------------------------------------`n" -ForegroundColor Cyan
 }
 
+function Test-IsEmptyConditionValue {
+    param($Value)
+    if ($null -eq $Value) { return $true }
+    if ($Value -is [string]) { return [string]::IsNullOrWhiteSpace($Value) }
+    if ($Value -is [System.Collections.IDictionary]) {
+        foreach ($item in $Value.Values) {
+            if (-not (Test-IsEmptyConditionValue $item)) { return $false }
+        }
+        return $true
+    }
+    if ($Value -is [System.Collections.IEnumerable]) {
+        foreach ($item in $Value) {
+            if (-not (Test-IsEmptyConditionValue $item)) { return $false }
+        }
+        return $true
+    }
+    $properties = @($Value.PSObject.Properties)
+    if ($properties.Count -gt 0) {
+        foreach ($property in $properties) {
+            if (-not (Test-IsEmptyConditionValue $property.Value)) { return $false }
+        }
+        return $true
+    }
+    return $false
+}
+
 # ─── READ CONTEXT FROM SCRIPT 01 ───
 Write-Host "`n[1/5] Reading context from script 01..." -ForegroundColor Cyan
 $appCtx = "$PSScriptRoot\.last-created-app.json"
@@ -79,7 +105,7 @@ if ($caResourceAppId -like "*EDIT_ME*") {
 # ─── CONNECT ───
 Write-Host "`n[2/5] Connecting to Microsoft Graph..." -ForegroundColor Cyan
 try {
-    Connect-MgGraph -TenantId $tenantId -Scopes "Policy.ReadWrite.ConditionalAccess" -NoWelcome -ErrorAction Stop
+    Connect-MgGraph -TenantId $tenantId -Scopes "Policy.Read.All","Policy.ReadWrite.ConditionalAccess" -NoWelcome -ErrorAction Stop
     Write-Host "  Connected." -ForegroundColor Green
 } catch {
     Write-Host "  Connection failed: $_" -ForegroundColor Red
@@ -98,10 +124,59 @@ try {
         Write-Host "    id    : $($caPolicy.id)" -ForegroundColor Gray
         Write-Host "    state : $($caPolicy.state)" -ForegroundColor Gray
         $targets = @($caPolicy.conditions.applications.includeApplications)
+        $excludedTargets = @($caPolicy.conditions.applications.excludeApplications)
+        $includedUserActions = @($caPolicy.conditions.applications.includeUserActions)
+        $includedAuthContexts = @($caPolicy.conditions.applications.includeAuthenticationContextClassReferences)
+        $applicationFilter = $caPolicy.conditions.applications.applicationFilter
+        $includedUsers = @($caPolicy.conditions.users.includeUsers)
+        $excludedUsers = @($caPolicy.conditions.users.excludeUsers)
+        $includedGroups = @($caPolicy.conditions.users.includeGroups)
+        $excludedGroups = @($caPolicy.conditions.users.excludeGroups)
+        $includedRoles = @($caPolicy.conditions.users.includeRoles)
+        $excludedRoles = @($caPolicy.conditions.users.excludeRoles)
+        $includeGuests = $caPolicy.conditions.users.includeGuestsOrExternalUsers
+        $excludeGuests = $caPolicy.conditions.users.excludeGuestsOrExternalUsers
         $controls = @($caPolicy.grantControls.builtInControls)
-        if ($targets -notcontains $caResourceAppId -or $controls -notcontains "mfa") {
-            Write-Host "  Existing same-name policy does not match the requested resource/MFA controls." -ForegroundColor Red
+        $clientAppTypes = @($caPolicy.conditions.clientAppTypes)
+        $allowedConditionNames = @("applications", "users", "clientAppTypes")
+        $hasExtraConditions = @(
+            $caPolicy.conditions.PSObject.Properties |
+                Where-Object {
+                    $allowedConditionNames -notcontains $_.Name -and
+                    -not (Test-IsEmptyConditionValue $_.Value)
+                }
+        ).Count -gt 0
+        $hasExtraGrantControls = `
+            @($caPolicy.grantControls.customAuthenticationFactors).Count -gt 0 -or `
+            @($caPolicy.grantControls.termsOfUse).Count -gt 0 -or `
+            $null -ne $caPolicy.grantControls.authenticationStrength
+        $hasSessionControls = $null -ne $caPolicy.sessionControls -and `
+            @($caPolicy.sessionControls.PSObject.Properties | Where-Object { $null -ne $_.Value }).Count -gt 0
+        $configurationMatches = `
+            $targets.Count -eq 1 -and $targets[0] -eq $caResourceAppId -and `
+            $excludedTargets.Count -eq 0 -and `
+            $includedUserActions.Count -eq 0 -and `
+            $includedAuthContexts.Count -eq 0 -and `
+            (Test-IsEmptyConditionValue $applicationFilter) -and `
+            $includedUsers.Count -eq 1 -and $includedUsers[0] -eq "All" -and `
+            $excludedUsers.Count -eq 0 -and `
+            $includedGroups.Count -eq 0 -and $excludedGroups.Count -eq 0 -and `
+            $includedRoles.Count -eq 0 -and $excludedRoles.Count -eq 0 -and `
+            $null -eq $includeGuests -and $null -eq $excludeGuests -and `
+            $controls.Count -eq 1 -and $controls[0] -eq "mfa" -and `
+            $caPolicy.grantControls.operator -eq "OR" -and `
+            ($clientAppTypes.Count -eq 0 -or ($clientAppTypes.Count -eq 1 -and $clientAppTypes[0] -eq "all")) -and `
+            -not $hasExtraConditions -and `
+            -not $hasExtraGrantControls -and `
+            -not $hasSessionControls
+        if (-not $configurationMatches) {
+            Write-Host "  Existing same-name policy does not exactly match the requested all-user/resource/MFA controls." -ForegroundColor Red
             Write-Host "  It was left unchanged for safety. Rename it or choose a different generated policy name." -ForegroundColor Yellow
+            exit 1
+        }
+        if ($caPolicy.state -ne "enabledForReportingButNotEnforced") {
+            Write-Host "  Existing matching policy is '$($caPolicy.state)', not report-only." -ForegroundColor Red
+            Write-Host "  It was left unchanged. Review its impact or return it to report-only before continuing." -ForegroundColor Yellow
             exit 1
         }
     }

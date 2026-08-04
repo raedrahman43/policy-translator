@@ -37,6 +37,11 @@ $flowContext = Get-Content $flowCtx -Raw | ConvertFrom-Json
 $tenantId = $appContext.tenantId
 $appId    = $appContext.appId
 $flowId   = $flowContext.flowId
+if ($flowContext.appId -ne $appId) {
+    Write-Host "  The saved flow context belongs to a different application." -ForegroundColor Red
+    Write-Host "  Re-run scripts 01 and 02 together before running this check." -ForegroundColor Yellow
+    exit 1
+}
 Write-Host "  Tenant : $tenantId" -ForegroundColor Gray
 Write-Host "  App    : $appId" -ForegroundColor Gray
 Write-Host "  Flow   : $flowId ($($flowContext.flowName))" -ForegroundColor Gray
@@ -45,8 +50,10 @@ Write-Host "  Flow   : $flowId ($($flowContext.flowName))" -ForegroundColor Gray
 Write-Host "`n[2/4] Discovering tenant subdomain..." -ForegroundColor Cyan
 try {
     $context = Get-MgContext
-    if (-not $context -or $context.TenantId -ne $tenantId -or $context.Scopes -notcontains "Organization.Read.All") {
-        Connect-MgGraph -TenantId $tenantId -Scopes "Organization.Read.All" -NoWelcome -ErrorAction Stop
+    if (-not $context -or $context.TenantId -ne $tenantId `
+        -or $context.Scopes -notcontains "Organization.Read.All" `
+        -or $context.Scopes -notcontains "EventListener.Read.All") {
+        Connect-MgGraph -TenantId $tenantId -Scopes "Organization.Read.All","EventListener.Read.All" -NoWelcome -ErrorAction Stop
     }
     $org = Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/organization"
     $initialDomain = ($org.value[0].verifiedDomains | Where-Object { $_.isInitial }).name
@@ -54,9 +61,17 @@ try {
     $subdomain = $initialDomain.Split('.')[0]
     Write-Host "  Initial domain : $initialDomain" -ForegroundColor Gray
     Write-Host "  Subdomain      : $subdomain" -ForegroundColor Gray
+
+    $flow = Invoke-MgGraphRequest -Method GET `
+        -Uri "https://graph.microsoft.com/v1.0/identity/authenticationEventsFlows/$flowId"
+    $boundAppIds = @($flow.conditions.applications.includeApplications | ForEach-Object { $_.appId })
+    if ($boundAppIds -notcontains $appId) {
+        throw "App '$appId' is not bound to the expected flow '$flowId'. Re-run script 02."
+    }
+    Write-Host "  App binding    : verified on flow $flowId" -ForegroundColor Green
 } catch {
-    Write-Host "  FAILED to discover the tenant subdomain: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "  Confirm the tenant ID and grant Organization.Read.All, then re-run." -ForegroundColor Yellow
+    Write-Host "  FAILED to verify the tenant or app-to-flow binding: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "  Confirm the tenant ID and grant Organization.Read.All plus EventListener.Read.All, then re-run." -ForegroundColor Yellow
     exit 1
 }
 
@@ -108,7 +123,7 @@ if ($status -eq 200 -and $response.continuation_token) {
     Write-Host "  PASS - Got continuation_token. Native auth is fully wired." -ForegroundColor Green
     exit 0
 }
-elseif ($errCode -in @("user_not_found", "invalid_grant") -or $errSub -eq "user_not_found") {
+elseif ($errCode -eq "user_not_found" -or $errSub -eq "user_not_found") {
     Write-Host "  PASS - Got expected '$errCode' for non-existent test user." -ForegroundColor Green
     Write-Host "     App is authorized, flow accepts requests, EmailPassword IdP is active." -ForegroundColor Green
     exit 0

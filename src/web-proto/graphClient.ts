@@ -35,6 +35,38 @@ export interface TokenPending { status: "pending"; }
 export interface TokenReady { status: "ready"; accessToken: string; expiresAt: number; }
 export interface TokenError { status: "error"; error: string; description: string; }
 export type TokenPoll = TokenPending | TokenReady | TokenError;
+export type TokenFallbackContext = "apply" | "apply-with-branding" | "branding-import";
+
+export function describeTokenError(
+  data: Record<string, unknown>,
+  context: TokenFallbackContext = "apply",
+): string {
+  const raw = String(data.error_description || data.error || "Sign-in failed.");
+  if (/530035|security defaults/i.test(raw)) {
+    if (context === "branding-import") {
+      return [
+        "Security Defaults blocked device-code sign-in (AADSTS530035).",
+        "Do not disable production security controls just to import branding.",
+        "Use the manual branding controls or review the source tenant's Company Branding in the Entra admin center.",
+      ].join(" ");
+    }
+    if (context === "apply-with-branding") {
+      return [
+        "Security Defaults blocked device-code sign-in (AADSTS530035).",
+        "Do not disable production security controls just to use Policy Translator.",
+        "Use the generated PowerShell package for supported scripted actions.",
+        "Company Branding is not included in that package and must be applied manually in the Entra admin center.",
+      ].join(" ");
+    }
+    return [
+      "Security Defaults blocked device-code sign-in (AADSTS530035).",
+      "Do not disable production security controls just to use Policy Translator.",
+      "Use the generated PowerShell package with its interactive Connect-MgGraph sign-in,",
+      "or ask your tenant administrator whether an approved Conditional Access configuration is appropriate.",
+    ].join(" ");
+  }
+  return raw;
+}
 
 function fullScopes(shortScopes: string[]): string {
   // Graph delegated scopes as fully-qualified URIs + the standard OIDC scopes.
@@ -66,7 +98,11 @@ export async function startDeviceCode(tenantId: string, scopes: string[]): Promi
 }
 
 /** Poll once for a token. Caller repeats on `pending` until `ready` / `error`. */
-export async function pollForToken(tenantId: string, deviceCode: string): Promise<TokenPoll> {
+export async function pollForToken(
+  tenantId: string,
+  deviceCode: string,
+  context: TokenFallbackContext = "apply",
+): Promise<TokenPoll> {
   const url = `https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`;
   const body = new URLSearchParams({
     grant_type: "urn:ietf:params:oauth:grant-type:device_code",
@@ -85,7 +121,11 @@ export async function pollForToken(tenantId: string, deviceCode: string): Promis
   if (data.error === "authorization_pending" || data.error === "slow_down") {
     return { status: "pending" };
   }
-  return { status: "error", error: data.error || "unknown", description: data.error_description || "Sign-in failed." };
+  return {
+    status: "error",
+    error: data.error || "unknown",
+    description: describeTokenError(data, context),
+  };
 }
 
 export class GraphError extends Error {

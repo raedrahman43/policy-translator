@@ -14,7 +14,12 @@
  */
 
 import { graph, GraphError } from "./graphClient";
-import { writeTargetBranding, ImportedBranding } from "./branding";
+import {
+  writeTargetBranding,
+  BrandingWriteResult,
+  ImportedBranding,
+} from "./branding";
+import { withEmailPasswordBaseline } from "../parsers/policyContextParser";
 
 export type StepStatus = "created" | "reused" | "skipped" | "manual" | "failed";
 
@@ -92,14 +97,14 @@ const ALL_ORDER = [
 const SCOPES: Record<string, string[]> = {
   "create-native-app": ["Application.ReadWrite.All"],
   "create-user-flow-emailpassword": ["EventListener.ReadWrite.All", "IdentityUserFlow.ReadWrite.All"],
-  "smoke-test-native-auth": ["Organization.Read.All"],
+  "smoke-test-native-auth": ["Organization.Read.All", "EventListener.Read.All"],
   "add-google-idp": ["IdentityProvider.ReadWrite.All", "EventListener.ReadWrite.All", "Organization.Read.All"],
   "add-facebook-idp": ["IdentityProvider.ReadWrite.All", "EventListener.ReadWrite.All"],
   "add-oidc-idp": [],
   "add-apple-idp": [],
   "enable-email-otp": ["Policy.ReadWrite.AuthenticationMethod"],
   "enable-sms-mfa": ["Policy.ReadWrite.AuthenticationMethod"],
-  "create-ca-policy": ["Policy.ReadWrite.ConditionalAccess"],
+  "create-ca-policy": ["Policy.Read.All", "Policy.ReadWrite.ConditionalAccess"],
   "enable-passkey": ["Policy.ReadWrite.AuthenticationMethod"],
   "claims-mapping-policy": ["Policy.ReadWrite.ApplicationConfiguration", "Application.ReadWrite.All"],
   "enable-sspr": ["EventListener.ReadWrite.All", "Policy.ReadWrite.AuthenticationMethod"],
@@ -133,10 +138,20 @@ function desiredSubsetMatches(current: unknown, desired: unknown): boolean {
 }
 
 /** True for transient "the thing I just created isn't visible yet" errors. */
-function isReplicationError(e: unknown): boolean {
+export function isReplicationError(e: unknown): boolean {
   if (e instanceof GraphError) {
     const m = e.message.toLowerCase();
-    return e.status === 404 || (e.status === 400 && (m.includes("is invalid") || m.includes("does not exist") || m.includes("not found") || m.includes("cannot find")));
+    return e.status === 404 || (
+      e.status === 400 &&
+      (
+        m.includes("is invalid") ||
+        m.includes("does not exist") ||
+        m.includes("not found") ||
+        m.includes("cannot find") ||
+        m.includes("not visible") ||
+        m.includes("replicat")
+      )
+    );
   }
   return false;
 }
@@ -259,12 +274,8 @@ async function createNativeApp(cfg: ApplyConfig, token: string, state: ApplyStat
 }
 
 function buildFlowAttributes(cfg: ApplyConfig) {
-  const baseline: StandardAttr[] = [
-    { id: "email", displayName: "Email Address", dataType: "string", required: true },
-    { id: "displayName", displayName: "Display Name", dataType: "string", required: true },
-  ];
   const byId = new Map<string, StandardAttr & { hidden?: boolean; editable?: boolean }>();
-  for (const attr of [...baseline, ...(cfg.attributes || [])]) {
+  for (const attr of withEmailPasswordBaseline(cfg.attributes || [])) {
     if (!attr?.id) continue;
     const existing = byId.get(attr.id);
     byId.set(attr.id, {
@@ -328,19 +339,11 @@ async function reconcileStandardFlowAttributes(flowId: string, cfg: ApplyConfig,
   }
 
   const currentInputs: any[] = flow.onAttributeCollection?.attributeCollectionPage?.views?.[0]?.inputs || [];
+  const currentViews: any[] = flow.onAttributeCollection?.attributeCollectionPage?.views || [];
   const desiredById = new Map(desiredInputs.map((input) => [input.attribute, input]));
   const mergedInputs = currentInputs.map((input) => {
     const desired = desiredById.get(input.attribute);
-    const clean = {
-      attribute: input.attribute,
-      label: input.label,
-      inputType: input.inputType,
-      hidden: Boolean(input.hidden),
-      editable: input.editable !== false,
-      writeToDirectory: input.writeToDirectory !== false,
-      required: Boolean(input.required),
-    };
-    return desired ? { ...clean, ...desired } : clean;
+    return desired ? { ...input, ...desired } : { ...input };
   });
   for (const desired of desiredInputs) {
     if (!mergedInputs.some((input) => input.attribute === desired.attribute)) mergedInputs.push(desired);
@@ -351,13 +354,38 @@ async function reconcileStandardFlowAttributes(flowId: string, cfg: ApplyConfig,
     return current && desiredSubsetMatches(current, desired);
   });
   if (!desiredInputsMatch) {
+    const mergedViews = currentViews.length
+      ? currentViews.map((view, index) => index === 0 ? { ...view, inputs: mergedInputs } : { ...view })
+      : [{ inputs: mergedInputs }];
     await graph("PATCH", `/v1.0/identity/authenticationEventsFlows/${flowId}`, token, {
       "@odata.type": "#microsoft.graph.externalUsersSelfServiceSignUpEventsFlow",
       onAttributeCollection: {
         "@odata.type": "#microsoft.graph.onAttributeCollectionExternalUsersSelfServiceSignUp",
-        attributeCollectionPage: { views: [{ inputs: mergedInputs }] },
+        attributeCollectionPage: { views: mergedViews },
       },
     });
+    await withRetry(
+      async () => {
+        const verified = await graph<any>("GET", `${castPath}?$expand=onAttributeCollection`, token);
+        const verifiedInputs: any[] =
+          verified.onAttributeCollection?.attributeCollectionPage?.views?.[0]?.inputs || [];
+        const converged = desiredInputs.every((desired) => {
+          const current = verifiedInputs.find((input) => input.attribute === desired.attribute);
+          return current && desiredSubsetMatches(current, desired);
+        });
+        if (!converged) {
+          throw new GraphError(404, {
+            error: {
+              code: "ReplicationPending",
+              message: "User-flow page input settings have not converged yet.",
+            },
+          });
+        }
+        return verified;
+      },
+      4,
+      1500,
+    );
   }
   return added;
 }
@@ -380,7 +408,7 @@ async function createUserFlow(cfg: ApplyConfig, token: string, state: ApplyState
   if (existing) {
     state.flowId = existing.id;
     try {
-      await withRetry(() => bindAppToFlow(existing.id, state.appId!, token));
+      await bindAppToFlow(existing.id, state.appId!, token);
       const attributesAdded = await reconcileStandardFlowAttributes(existing.id, cfg, token);
       return {
         kind: "create-user-flow-emailpassword",
@@ -435,10 +463,12 @@ async function createUserFlow(cfg: ApplyConfig, token: string, state: ApplyState
   let linkNote: string | undefined;
   if (appId) {
     try {
-      await withRetry(() => bindAppToFlow(flow.id, appId, token));
+      await bindAppToFlow(flow.id, appId, token);
       appLinked = true;
-    } catch {
-      linkNote = "User flow created, but linking your app is still replicating in the tenant. Re-run this step in ~30s to finish the link.";
+    } catch (err) {
+      linkNote = isReplicationError(err)
+        ? "User flow created, but linking your app is still replicating in the tenant. Re-run this step in ~30s to finish the link."
+        : `User flow created, but the application binding failed: ${explainError("create-user-flow-emailpassword", err)}`;
     }
   }
 
@@ -453,15 +483,50 @@ async function createUserFlow(cfg: ApplyConfig, token: string, state: ApplyState
 
 /** Add an application to the flow through the dedicated GA endpoint (idempotent). */
 async function bindAppToFlow(flowId: string, appId: string, token: string): Promise<void> {
-  const flow = await graph<any>("GET", `/v1.0/identity/authenticationEventsFlows/${flowId}`, token);
-  const current: string[] = (flow.conditions?.applications?.includeApplications || []).map((a: any) => a.appId);
-  if (current.includes(appId)) return;
-  await graph(
-    "POST",
-    `/v1.0/identity/authenticationEventsFlows/${flowId}/conditions/applications/includeApplications`,
-    token,
-    { appId },
-  );
+  await withRetry(async () => {
+    const current = await graph<any>(
+      "GET",
+      `/v1.0/identity/authenticationEventsFlows/${flowId}`,
+      token,
+    );
+    if (flowHasAppBinding(current, appId)) return current;
+    try {
+      await graph(
+        "POST",
+        `/v1.0/identity/authenticationEventsFlows/${flowId}/conditions/applications/includeApplications`,
+        token,
+        { appId },
+      );
+    } catch (err) {
+      if (!(err instanceof GraphError) || err.status !== 400) throw err;
+      if (isReplicationError(err)) throw err;
+      const message = err.message.toLowerCase();
+      const benignDuplicate =
+        /already (?:exist|exists|included|added)/.test(message) &&
+        !/another|different/.test(message);
+      if (!benignDuplicate) throw err;
+    }
+    const verified = await graph<any>(
+      "GET",
+      `/v1.0/identity/authenticationEventsFlows/${flowId}`,
+      token,
+    );
+    if (!flowHasAppBinding(verified, appId)) {
+      throw new GraphError(404, {
+        error: {
+          code: "ReplicationPending",
+          message: "The application binding is not visible on the user flow yet.",
+        },
+      });
+    }
+    return verified;
+  }, 5, 2000);
+}
+
+export function flowHasAppBinding(flow: any, appId: string): boolean {
+  const current: string[] = (flow?.conditions?.applications?.includeApplications || [])
+    .map((application: any) => String(application.appId || ""));
+  return current.includes(appId);
 }
 
 /** Add an identity provider to the flow through the dedicated GA $ref endpoint. */
@@ -566,7 +631,74 @@ async function patchAuthMethod(
     if (!(err instanceof GraphError) || err.status !== 404) throw err;
   }
   await graph("PATCH", base, token, body);
+  await withRetry(async () => {
+    const verified = await graph<any>("GET", base, token);
+    if (!desiredSubsetMatches(verified, body)) {
+      throw new GraphError(404, {
+        error: {
+          code: "ReplicationPending",
+          message: `${methodId} authentication-method settings are not visible yet.`,
+        },
+      });
+    }
+    return verified;
+  }, 4, 1000);
   return { kind, label: lbl(kind), status: "created", resource: { method: methodId, state: "enabled" } };
+}
+
+function sortedStrings(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String).sort() : [];
+}
+
+function arraysEqual(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function isEmptyCondition(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).every(isEmptyCondition);
+  }
+  return false;
+}
+
+export function caPolicyMatches(policy: any, resourceAppId: string): boolean {
+  const applications = policy?.conditions?.applications || {};
+  const users = policy?.conditions?.users || {};
+  const grant = policy?.grantControls || {};
+  const clientAppTypes = sortedStrings(policy?.conditions?.clientAppTypes);
+
+  const knownConditionKeys = new Set(["applications", "users", "clientAppTypes"]);
+  const hasAdditionalConditions = Object.entries(policy?.conditions || {})
+    .some(([key, value]) => !knownConditionKeys.has(key) && !isEmptyCondition(value));
+
+  return (
+    arraysEqual(
+      sortedStrings(applications.includeApplications).map((value) => value.toLowerCase()),
+      [resourceAppId.toLowerCase()],
+    ) &&
+    sortedStrings(applications.excludeApplications).length === 0 &&
+    sortedStrings(applications.includeUserActions).length === 0 &&
+    sortedStrings(applications.includeAuthenticationContextClassReferences).length === 0 &&
+    isEmptyCondition(applications.applicationFilter) &&
+    arraysEqual(sortedStrings(users.includeUsers), ["All"]) &&
+    sortedStrings(users.excludeUsers).length === 0 &&
+    sortedStrings(users.includeGroups).length === 0 &&
+    sortedStrings(users.excludeGroups).length === 0 &&
+    sortedStrings(users.includeRoles).length === 0 &&
+    sortedStrings(users.excludeRoles).length === 0 &&
+    isEmptyCondition(users.includeGuestsOrExternalUsers) &&
+    isEmptyCondition(users.excludeGuestsOrExternalUsers) &&
+    (clientAppTypes.length === 0 || arraysEqual(clientAppTypes, ["all"])) &&
+    grant.operator === "OR" &&
+    arraysEqual(sortedStrings(grant.builtInControls), ["mfa"]) &&
+    isEmptyCondition(grant.customAuthenticationFactors) &&
+    isEmptyCondition(grant.termsOfUse) &&
+    isEmptyCondition(grant.authenticationStrength) &&
+    isEmptyCondition(policy?.sessionControls) &&
+    !hasAdditionalConditions
+  );
 }
 
 async function createCaPolicy(cfg: ApplyConfig, token: string, state: ApplyState): Promise<StepResult> {
@@ -591,10 +723,7 @@ async function createCaPolicy(cfg: ApplyConfig, token: string, state: ApplyState
   const existing = await graph<any>("GET", "/v1.0/identity/conditionalAccess/policies", token);
   const found = (existing.value || []).find((p: any) => p.displayName === displayName);
   if (found) {
-    const configurationMatches = desiredSubsetMatches(found, {
-      conditions: body.conditions,
-      grantControls: body.grantControls,
-    });
+    const configurationMatches = caPolicyMatches(found, cfg.caResourceAppId);
     if (!configurationMatches) {
       return {
         kind: "create-ca-policy",
@@ -604,15 +733,24 @@ async function createCaPolicy(cfg: ApplyConfig, token: string, state: ApplyState
         message: "A Conditional Access policy with the generated name already exists but targets different resources or grant controls. It was left unchanged for safety.",
       };
     }
+
+    if (found.state !== "enabledForReportingButNotEnforced") {
+      return {
+        kind: "create-ca-policy",
+        label: lbl("create-ca-policy"),
+        status: "manual",
+        resource: { id: found.id, state: found.state, resourceAppId: cfg.caResourceAppId },
+        message: `An existing policy with the requested resource and MFA controls is '${found.state}', not report-only. It was left unchanged; review its impact before continuing.`,
+        requiresFollowUp: true,
+      };
+    }
     return {
       kind: "create-ca-policy",
       label: lbl("create-ca-policy"),
       status: "reused",
       resource: { id: found.id, state: found.state, resourceAppId: cfg.caResourceAppId },
-      message: found.state === "enabledForReportingButNotEnforced"
-        ? "Existing report-only Conditional Access policy already matches."
-        : `Existing matching Conditional Access policy is '${found.state}' and was left unchanged.`,
-      requiresFollowUp: found.state === "enabledForReportingButNotEnforced",
+      message: "Existing report-only Conditional Access policy already matches.",
+      requiresFollowUp: true,
     };
   }
   const policy = await graph<any>("POST", "/v1.0/identity/conditionalAccess/policies", token, body);
@@ -716,8 +854,31 @@ async function configureClaimsMapping(cfg: ApplyConfig, token: string, state: Ap
 }
 
 // ─── SSPR (script 09) — External ID uses Email OTP as the reset verifier ─────
-async function enableSspr(token: string): Promise<StepResult> {
+export function flowHasEmailPasswordProvider(flow: any): boolean {
+  const providers = flow?.onAuthenticationMethodLoadStart?.identityProviders || [];
+  return providers.some((provider: any) => String(provider.id || "") === "EmailPassword-OAUTH");
+}
+
+async function enableSspr(token: string, state: ApplyState): Promise<StepResult> {
   const kind = "enable-sspr";
+  if (!state.flowId || !state.appId) {
+    return {
+      kind,
+      label: lbl(kind),
+      status: "skipped",
+      message: "SSPR requires the Email + Password user flow and application binding to be created or reused in this run.",
+    };
+  }
+  const castPath = `/v1.0/identity/authenticationEventsFlows/${state.flowId}/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow`;
+  const flow = await graph<any>("GET", `${castPath}?$expand=onAuthenticationMethodLoadStart`, token);
+  if (!flowHasAppBinding(flow, state.appId) || !flowHasEmailPasswordProvider(flow)) {
+    return {
+      kind,
+      label: lbl(kind),
+      status: "failed",
+      message: "The target flow is not both bound to this application and configured with Email + Password. SSPR was not reported as ready.",
+    };
+  }
   const r = await patchAuthMethod(
     kind, "Email",
     { "@odata.type": "#microsoft.graph.emailAuthenticationMethodConfiguration", state: "enabled", allowExternalIdToUseEmailOtp: "enabled" },
@@ -860,26 +1021,45 @@ async function createCustomAttributes(cfg: ApplyConfig, token: string, state: Ap
 }
 
 // ─── Company branding (Path A) — copy the source tenant's real branding ──────
+export function brandingWriteStepResult(result: BrandingWriteResult): StepResult {
+  const kind = "migrate-company-branding";
+  const resource = {
+    written: result.written,
+    skipped: result.skipped,
+    errors: result.errors,
+  };
+  if (result.errors.length) {
+    const completed = result.written.length
+      ? `Branding was only partially applied (${result.written.join(", ")}).`
+      : "Branding was not applied.";
+    return {
+      kind,
+      label: lbl(kind),
+      status: "failed",
+      resource,
+      message: `${completed} Resolve these failures and re-run branding: ${result.errors.join("; ")}`,
+    };
+  }
+  const completed = result.written.length
+    ? `Applied ${result.written.join(", ")}.`
+    : "Branding already matched the requested values.";
+  return {
+    kind,
+    label: lbl(kind),
+    status: result.written.length ? "created" : "reused",
+    resource,
+    message: `${completed} Verify the real browser-hosted sign-in page.`,
+    requiresFollowUp: true,
+  };
+}
+
 async function migrateCompanyBranding(cfg: ApplyConfig, token: string): Promise<StepResult> {
   const kind = "migrate-company-branding";
   const b = cfg.branding;
   if (!b || !b.hasBranding) {
     return { kind, label: lbl(kind), status: "manual", message: "Import your branding from the source B2C tenant first (or set it under Company Branding)." };
   }
-  const r = await writeTargetBranding(cfg.tenantId, token, b);
-  if (r.errors.length && !r.written.length) {
-    return { kind, label: lbl(kind), status: "failed", message: r.errors.join("; ") };
-  }
-  const parts: string[] = [];
-  if (r.written.length) parts.push(`applied ${r.written.join(", ")}`);
-  if (r.errors.length) parts.push(`failed: ${r.errors.join("; ")}`);
-  return {
-    kind, label: lbl(kind),
-    status: r.written.length ? "created" : "reused",
-    resource: { written: r.written, skipped: r.skipped, errors: r.errors },
-    message: parts.join(" · ") || "No branding elements to copy.",
-    ...(r.errors.length ? { requiresFollowUp: true } : {}),
-  };
+  return brandingWriteStepResult(await writeTargetBranding(cfg.tenantId, token, b));
 }
 
 // ─── Native-auth smoke test — a REAL check (ported from 03-smoke-test) ───────
@@ -894,6 +1074,29 @@ async function smokeTestNativeAuth(cfg: ApplyConfig, token: string, state: Apply
     return {
       kind, label: lbl(kind), status: "manual",
       message: 'This check needs both the native app and user flow. Include those steps in this run (or re-run after they exist), then run this check again.',
+    };
+  }
+
+  try {
+    const flow = await graph<any>(
+      "GET",
+      `/v1.0/identity/authenticationEventsFlows/${state.flowId}`,
+      token,
+    );
+    if (!flowHasAppBinding(flow, appId)) {
+      return {
+        kind,
+        label: lbl(kind),
+        status: "failed",
+        message: "The target application is not bound to the specific user flow created for this run. Re-run the user-flow step before testing native auth.",
+      };
+    }
+  } catch (err) {
+    return {
+      kind,
+      label: lbl(kind),
+      status: "failed",
+      message: `Could not verify the target app-to-flow binding before the smoke test: ${explainError(kind, err)}`,
     };
   }
 
@@ -947,7 +1150,7 @@ async function smokeTestNativeAuth(cfg: ApplyConfig, token: string, state: Apply
   if (status === 200 && body.continuation_token) {
     return { kind, label: lbl(kind), status: "created", resource: { verdict: "full-pass", endpoint: url }, message: "Native auth fully wired — the endpoint returned a continuation token." };
   }
-  if (errCode === "user_not_found" || errCode === "invalid_grant" || errSub === "user_not_found") {
+  if (errCode === "user_not_found" || errSub === "user_not_found") {
     return {
       kind, label: lbl(kind), status: "created", resource: { verdict: "pass", endpoint: url },
       message: "Native auth verified — the endpoint is live, the app is authorized, and the flow accepts requests (the throwaway test user was correctly rejected).",
@@ -1033,8 +1236,12 @@ async function runStep(kind: string, cfg: ApplyConfig, token: string, state: App
       };
     case "enable-passkey":
       return {
-        ...(await patchAuthMethod(kind, "Fido2", { "@odata.type": "#microsoft.graph.fido2AuthenticationMethodConfiguration", state: "enabled", isSelfServiceRegistrationAllowed: true, includeTargets: [{ targetType: "group", id: "all_users" }] }, token)),
-        message: "The FIDO2 policy is enabled. Full passkey rollout still requires a custom URL domain and a credential-registration experience; passkeys are not supported by native-auth APIs.",
+        ...(await patchAuthMethod(kind, "Fido2", {
+          "@odata.type": "#microsoft.graph.fido2AuthenticationMethodConfiguration",
+          state: "enabled",
+          isSelfServiceRegistrationAllowed: true,
+        }, token)),
+        message: "The FIDO2 base policy is enabled. Policy Translator intentionally leaves passkey profiles and user/group targeting unchanged; configure those manually together with local password accounts, recent MFA, Azure Front Door, a custom URL domain, and a credential-registration experience.",
         requiresFollowUp: true,
       };
     case "create-ca-policy": return createCaPolicy(cfg, token, state);
@@ -1053,7 +1260,7 @@ async function runStep(kind: string, cfg: ApplyConfig, token: string, state: App
         message: "External ID supports Apple federation, but Microsoft does not publish a supported external-tenant Graph create API. Configure Apple in the Entra admin center and add it to the user flow.",
       };
     case "claims-mapping-policy": return configureClaimsMapping(cfg, token, state);
-    case "enable-sspr": return enableSspr(token);
+    case "enable-sspr": return enableSspr(token, state);
     case "create-custom-attributes": return createCustomAttributes(cfg, token, state);
     case "migrate-company-branding": return migrateCompanyBranding(cfg, token);
     case "smoke-test-native-auth": return smokeTestNativeAuth(cfg, token, state);

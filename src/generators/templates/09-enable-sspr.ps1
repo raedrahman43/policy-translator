@@ -66,7 +66,15 @@ Write-Host "`n[3/5] Verifying the user flow..." -ForegroundColor Cyan
 #   3. (optional) the "Forgot password?" link is shown via Company Branding
 try {
     $currentFlow = Invoke-MgGraphRequest -Method GET `
-        -Uri "https://graph.microsoft.com/v1.0/identity/authenticationEventsFlows/$flowId"
+        -Uri "https://graph.microsoft.com/v1.0/identity/authenticationEventsFlows/$flowId/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow?`$expand=onAuthenticationMethodLoadStart"
+    $flowAppIds = @($currentFlow.conditions.applications.includeApplications | ForEach-Object { $_.appId })
+    $flowProviderIds = @($currentFlow.onAuthenticationMethodLoadStart.identityProviders | ForEach-Object { $_.id })
+    if ($flowAppIds -notcontains $appContext.appId) {
+        throw "The target application is not bound to this user flow."
+    }
+    if ($flowProviderIds -notcontains "EmailPassword-OAUTH") {
+        throw "The user flow does not use Email + Password as its local-account provider."
+    }
     Write-Host "  Flow found: $($currentFlow.displayName)" -ForegroundColor Green
 } catch {
     Write-Host "  Could not read flow: $_" -ForegroundColor Red
@@ -87,16 +95,29 @@ $emailBody = @{
 try {
     $currentEmail = Invoke-MgGraphRequest -Method GET `
         -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Email"
-    if ($currentEmail.state -eq "enabled") {
+    if ($currentEmail.state -eq "enabled" -and $currentEmail.allowExternalIdToUseEmailOtp -eq "enabled") {
         Write-Host "  Email OTP already enabled." -ForegroundColor Green
     } else {
         Invoke-MgGraphRequest -Method PATCH `
             -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Email" `
             -Body $emailBody `
             -ContentType "application/json"
-        Start-Sleep -Seconds 2
-        $verifyEmail = Invoke-MgGraphRequest -Method GET `
-            -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Email"
+        $verifyEmail = $null
+        for ($attempt = 1; $attempt -le 5; $attempt++) {
+            Start-Sleep -Seconds $attempt
+            try {
+                $verifyEmail = Invoke-MgGraphRequest -Method GET `
+                    -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Email"
+                if ($verifyEmail.state -eq "enabled" -and $verifyEmail.allowExternalIdToUseEmailOtp -eq "enabled") {
+                    break
+                }
+            } catch {
+                if ($attempt -eq 5) { throw }
+            }
+        }
+        if ($verifyEmail.state -ne "enabled" -or $verifyEmail.allowExternalIdToUseEmailOtp -ne "enabled") {
+            throw "Email OTP verification failed: External ID use is not fully enabled."
+        }
         Write-Host "  Email OTP enabled (state: $($verifyEmail.state))." -ForegroundColor Green
     }
 } catch {

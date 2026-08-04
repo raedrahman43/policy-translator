@@ -25,6 +25,20 @@
 .telemetry-footer input { accent-color: var(--brand); }
 .telemetry-footer a { font-weight: 600; }
 
+.scope-boundary,
+.auth-policy-note {
+  margin-top: 16px;
+  padding: 11px 13px;
+  border: 1px solid #f0d8a8;
+  border-radius: var(--radius);
+  background: #fff8eb;
+  color: #6b4f00;
+  font-size: .8rem;
+  line-height: 1.45;
+}
+.scope-boundary strong { display: block; margin-bottom: 3px; }
+.auth-policy-note { margin: 10px 0 14px; }
+
 /* ── Step 3: select + preview ─────────────────────────────────────────── */
 .migration-mode {
   display: grid;

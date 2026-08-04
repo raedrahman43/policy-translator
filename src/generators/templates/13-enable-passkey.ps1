@@ -12,11 +12,13 @@
 #  What this does:
 #    - Enables the FIDO2/passkey authentication method at the tenant level
 #    - Allows self-service passkey registration
-#    - Targets all users (all_users)
+#    - Preserves existing passkey profiles and user/group targeting
 #
 #  IMPORTANT: Policy enablement alone is not a complete passkey rollout.
-#      External ID also requires a custom URL domain and a credential
-#      management experience for users to register/remove passkeys.
+#      Users need email/username + password local accounts and recent MFA.
+#      External ID also requires Azure Front Door, a custom URL domain,
+#      and a credential management experience for users to register/remove passkeys.
+#      The application must be associated with a sign-up/sign-in user flow.
 #      Passkeys use browser-delegated authentication and are not supported
 #      through the native-auth APIs.
 #
@@ -53,10 +55,11 @@ try {
         -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Fido2"
     $currentState = $currentConfig.state
     Write-Host "  Current state: $currentState" -ForegroundColor Gray
-
-    if ($currentState -eq "enabled") {
-        Write-Host "  Passkey (FIDO2) is already enabled. No changes needed." -ForegroundColor Green
-        Write-Host "  Follow-up: verify custom URL domain and credential-registration experience." -ForegroundColor Yellow
+    if ($currentState -eq "enabled" `
+        -and $currentConfig.isSelfServiceRegistrationAllowed -eq $true) {
+        Write-Host "  Passkey base policy already matches. No changes needed." -ForegroundColor Green
+        Write-Host "  Policy Translator intentionally leaves passkey profiles and target assignments unchanged." -ForegroundColor Yellow
+        Write-Host "  Follow-up: configure targeting/profiles, local password accounts, recent MFA, Azure Front Door, custom URL domain, and credential registration." -ForegroundColor Yellow
         Write-Host "`n  Done!" -ForegroundColor Cyan
         exit 0
     }
@@ -70,12 +73,6 @@ $body = @{
     "@odata.type"                    = "#microsoft.graph.fido2AuthenticationMethodConfiguration"
     state                            = "enabled"
     isSelfServiceRegistrationAllowed = $true
-    includeTargets                   = @(
-        @{
-            targetType = "group"
-            id         = "all_users"
-        }
-    )
 } | ConvertTo-Json -Depth 5
 
 try {
@@ -93,20 +90,36 @@ try {
     Write-Host "`n  Common fixes:" -ForegroundColor Cyan
     Write-Host "  - Caller needs role: Authentication Policy Administrator (or higher)" -ForegroundColor Yellow
     Write-Host "  - Confirm tenant is an External ID (CIAM) tenant" -ForegroundColor Yellow
-    Write-Host "  - Confirm a custom URL domain is configured for the external tenant" -ForegroundColor Yellow
+    Write-Host "  - Confirm Azure Front Door and a custom URL domain are configured for the external tenant" -ForegroundColor Yellow
     exit 1
 }
 
 # ─── VERIFY ───
 Write-Host "`n  Verifying..." -ForegroundColor Cyan
-Start-Sleep -Seconds 2
-$verify = Invoke-MgGraphRequest -Method GET `
-    -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Fido2"
+$verify = $null
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+    Start-Sleep -Seconds $attempt
+    try {
+        $verify = Invoke-MgGraphRequest -Method GET `
+            -Uri "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy/authenticationMethodConfigurations/Fido2"
+        if ($verify.state -eq "enabled" -and $verify.isSelfServiceRegistrationAllowed -eq $true) {
+            break
+        }
+    } catch {
+        if ($attempt -eq 5) { throw }
+    }
+}
+if ($verify.state -ne "enabled" `
+    -or $verify.isSelfServiceRegistrationAllowed -ne $true) {
+    Write-Host "  Verification failed: the FIDO2 base policy is not enabled for self-service registration." -ForegroundColor Red
+    exit 1
+}
 Write-Host "  Passkey (FIDO2) state: $($verify.state)" -ForegroundColor Green
 
 Write-Host "`n═══════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host "  The passkey (FIDO2) tenant policy is enabled." -ForegroundColor Green
-Write-Host "  Follow-up: configure a custom URL domain and a passkey registration/removal experience." -ForegroundColor Yellow
+Write-Host "  Policy Translator did not modify passkey profiles or target assignments." -ForegroundColor Yellow
+Write-Host "  Follow-up: configure targeting/profiles, confirm local password accounts and recent MFA, then configure Azure Front Door, a custom URL domain, and passkey registration/removal." -ForegroundColor Yellow
 Write-Host "  Passkeys are browser-delegated and are not supported through native-auth APIs." -ForegroundColor Yellow
 Write-Host "  {{NEXT_STEP}}" -ForegroundColor White
 Write-Host "═══════════════════════════════════════════════════════`n" -ForegroundColor Cyan
