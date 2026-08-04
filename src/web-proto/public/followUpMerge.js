@@ -10,6 +10,16 @@
     return item.kind ? [String(item.kind)] : [];
   }
 
+  function applyProgressPresentation(result) {
+    if (!result || result.status === "failed") {
+      return { className: "failed", icon: "×" };
+    }
+    if (result.status === "manual" || result.status === "skipped") {
+      return { className: "manual", icon: "!" };
+    }
+    return { className: "done", icon: "✓" };
+  }
+
   function unselectedItem(item) {
     const validationSteps = Array.isArray(item.manual?.steps) ? item.manual.steps : [];
     return {
@@ -159,5 +169,5 @@
     return merged;
   }
 
-  return { mergeApplyGapItems };
+  return { applyProgressPresentation, mergeApplyGapItems };
 });
