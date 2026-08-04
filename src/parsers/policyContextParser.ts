@@ -201,10 +201,6 @@ function extractAttributes(features: AnalysisFeature[]): UserAttribute[] {
       attrs.push({ id: "streetAddress", displayName: "Street Address", dataType: "string", required: false });
       seen.add("streetAddress");
     }
-    if (combined.includes("company") && !seen.has("companyName")) {
-      attrs.push({ id: "companyName", displayName: "Company Name", dataType: "string", required: false });
-      seen.add("companyName");
-    }
   }
 
   return attrs;
@@ -230,7 +226,7 @@ function toDisplayName(name: string): string {
 const BUILT_IN_ATTR_NAMES = new Set([
   "email", "emailaddress", "displayname", "phonenumber", "phone", "mobile",
   "city", "country", "jobtitle", "surname", "givenname", "postalcode",
-  "streetaddress", "companyname", "name", "mail", "given_name", "family_name",
+  "streetaddress", "name", "mail", "given_name", "family_name",
   "state", "province",
 ]);
 

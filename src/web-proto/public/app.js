@@ -1190,12 +1190,9 @@ async function runRealApply() {
     li.querySelector(".ap-icon").textContent = "⟳";
     await sleep(220);
     const r = byKind[k];
-    const st = r ? r.status : "failed";
-    const needsAttention = !r || st === "failed" || st === "manual" || st === "skipped" || r.requiresFollowUp;
-    const cls = st === "failed" || !r ? "failed" : needsAttention ? "manual" : "done";
-    const icon = st === "failed" || !r ? "×" : needsAttention ? "!" : "✓";
-    li.classList.remove("running"); li.classList.add(cls);
-    li.querySelector(".ap-icon").textContent = icon;
+    const presentation = globalThis.PolicyTranslatorFollowUps.applyProgressPresentation(r);
+    li.classList.remove("running"); li.classList.add(presentation.className);
+    li.querySelector(".ap-icon").textContent = presentation.icon;
     const id = r && r.resource ? (r.resource.appId || r.resource.id || "") : "";
     if (id) li.querySelector(".ap-id").textContent = String(id).slice(0, 8) + "…";
     li.title = r?.message || (r ? "" : "The server did not return a result for this step.");

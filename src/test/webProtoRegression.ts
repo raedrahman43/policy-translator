@@ -18,7 +18,10 @@ import {
 import { generate } from "../web/server";
 import { manualRecreationSteps } from "../generators/manualRecreation";
 import { classifyEmailOtpMode } from "../mappers/featureMap";
-const { mergeApplyGapItems } = require("../web-proto/public/followUpMerge.js");
+const {
+  applyProgressPresentation,
+  mergeApplyGapItems,
+} = require("../web-proto/public/followUpMerge.js");
 
 const originalFetch = globalThis.fetch;
 
@@ -149,6 +152,34 @@ async function testAnalyzeContext(): Promise<void> {
   if (!phoneResult.ok) throw new Error("Phone attribute fixture unexpectedly failed.");
   assert(phoneResult.body.context.attributes.some((attribute) => attribute.id === "mobilePhone"));
   assert(!phoneResult.body.context.attributes.some((attribute) => attribute.id === "phoneNumber"));
+
+  const companyResult = analyze({
+    policyName: "B2C_1A_CompanyAttribute",
+    features: [
+      {
+        name: "signUp_auth_emailPassword",
+        reason: "Email password sign-up detected",
+        recommendation: "Use an External ID user flow",
+        externalIdAvailability: "Available",
+      },
+      {
+        name: "signUp_attributes_standard",
+        reason: "Collect companyName during sign-up",
+        recommendation: "Use supported user-flow attributes",
+        externalIdAvailability: "Available",
+      },
+      {
+        name: "signUp_attributes_custom",
+        reason: "Collect extension_companyName during sign-up",
+        recommendation: "Create a custom user-flow attribute",
+        externalIdAvailability: "Available",
+      },
+    ],
+  });
+  assert.equal(companyResult.ok, true);
+  if (!companyResult.ok) throw new Error("Company attribute fixture unexpectedly failed.");
+  assert(!companyResult.body.context.attributes.some((attribute) => attribute.id === "companyName"));
+  assert(companyResult.body.context.customAttributes.some((attribute) => attribute.name === "companyName"));
 
   const enrichedResult = analyze({
     policyName: "B2C_1A_EnrichedMetadata",
@@ -561,6 +592,23 @@ async function testAnalyzeContext(): Promise<void> {
     ["enable-email-otp"],
     [],
   ).some((followUp) => followUp.label === "Email OTP authentication method"));
+
+  assert.deepEqual(
+    applyProgressPresentation({ status: "created", requiresFollowUp: true }),
+    { className: "done", icon: "✓" },
+  );
+  assert.deepEqual(
+    applyProgressPresentation({ status: "reused", requiresFollowUp: true }),
+    { className: "done", icon: "✓" },
+  );
+  assert.deepEqual(
+    applyProgressPresentation({ status: "skipped" }),
+    { className: "manual", icon: "!" },
+  );
+  assert.deepEqual(
+    applyProgressPresentation({ status: "failed" }),
+    { className: "failed", icon: "×" },
+  );
   assert(simulationFollowUps(
     ["create-native-app", "enable-email-otp"],
     ["enable-email-otp"],
