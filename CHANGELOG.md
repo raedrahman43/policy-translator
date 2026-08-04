@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.0 - 2026-08-04
+
 - Established port 4001 as the recommended guided migration experience.
 - Added opt-in real Microsoft Graph apply with local device-code sessions.
 - Added closest-1:1 and modernize migration modes.
@@ -12,3 +14,6 @@
   aggregate GitHub community metrics.
 - Added open-source customer, contributor, testing, privacy, support, security, and
   governance documentation.
+- Incorporated customer-pilot feedback for authentication preflight, platform
+  limitations, selected-plan honesty, live validation, passkey prerequisites, broker
+  redesign, claims, custom attributes, and outcome-aware apply guidance.

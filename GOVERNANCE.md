@@ -2,14 +2,15 @@
 
 ## Current stage
 
-Policy Translator is in private personal-account staging while documentation,
-publication approval, and future organizational ownership are finalized.
+Policy Translator is a public community preview. The current personal-account
+repository is the contribution and release location while future organizational
+ownership is evaluated.
 
 ## Maintainer
 
 - Founding maintainer: [@raedrahman43](https://github.com/raedrahman43)
 
-Additional maintainers and CODEOWNERS can be added before public contribution intake.
+Additional maintainers and CODEOWNERS can be added as the contributor community grows.
 
 ## Decision making
 
@@ -23,18 +24,16 @@ Additional maintainers and CODEOWNERS can be added before public contribution in
 
 ## Repository controls
 
-The default branch should require:
+The default branch requires:
 
 - pull requests;
 - passing CI and CodeQL;
 - resolved review conversations;
-- CODEOWNER review for security-sensitive areas;
 - no force pushes or branch deletion.
 
-GitHub Free does not provide branch protection or CodeQL for a private personal
-repository. These controls must be activated before public release (or after upgrading
-the private repository plan). Until then, maintainers use pull requests and CI by
-convention.
+Required approving reviews are not enabled while there is only one active maintainer,
+to avoid locking the repository. Enable at least one approval plus CODEOWNER review for
+security-sensitive areas after a second maintainer accepts access.
 
 ## Ownership transition
 

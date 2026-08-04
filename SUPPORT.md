@@ -8,7 +8,7 @@ support or an SLA.
 - Search existing GitHub Issues.
 - Open a sanitized bug report for reproducible defects.
 - Open a feature proposal for additional Analyzer keys.
-- Use GitHub Discussions for usage and design questions once Discussions are enabled.
+- Use GitHub Discussions for usage and design questions.
 
 Do not post customer policy exports, tenant IDs, credentials, tokens, generated state,
 or screenshots containing identifiers.
