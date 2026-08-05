@@ -234,8 +234,7 @@ try {
     $desiredFlow = $body | ConvertFrom-Json
     $desiredAttributes = @($desiredFlow.onAttributeCollection.attributes)
     $desiredInputs = @($desiredFlow.onAttributeCollection.attributeCollectionPage.views[0].inputs)
-    $flowCastUri = "$flowUri/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow?`$expand=onAttributeCollection"
-    $detailedFlow = Invoke-MgGraphRequest -Method GET -Uri $flowCastUri
+    $detailedFlow = Invoke-MgGraphRequest -Method GET -Uri $flowUri
     $currentAttributeIds = @($detailedFlow.onAttributeCollection.attributes | ForEach-Object { $_.id })
     $attributeRefUri = "$flowUri/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow/onAttributeCollection/microsoft.graph.onAttributeCollectionExternalUsersSelfServiceSignUp/attributes/`$ref"
 
@@ -255,7 +254,7 @@ try {
     for ($attempt = 1; $attempt -le 5 -and -not $attributesConverged; $attempt++) {
         Start-Sleep -Seconds $attempt
         try {
-            $detailedFlow = Invoke-MgGraphRequest -Method GET -Uri $flowCastUri
+            $detailedFlow = Invoke-MgGraphRequest -Method GET -Uri $flowUri
             $replicatedIds = @($detailedFlow.onAttributeCollection.attributes | ForEach-Object { $_.id })
             $attributesConverged = @(
                 $desiredAttributes | Where-Object { $replicatedIds -notcontains $_.id }
@@ -348,7 +347,7 @@ try {
         for ($attempt = 1; $attempt -le 5 -and -not $pageSettingsConverged; $attempt++) {
             Start-Sleep -Seconds $attempt
             try {
-                $verifiedFlow = Invoke-MgGraphRequest -Method GET -Uri $flowCastUri
+                $verifiedFlow = Invoke-MgGraphRequest -Method GET -Uri $flowUri
                 $verifiedInputs = @($verifiedFlow.onAttributeCollection.attributeCollectionPage.views[0].inputs)
                 $pageSettingsConverged = $true
                 foreach ($desiredInput in $desiredInputs) {

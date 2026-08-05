@@ -647,6 +647,40 @@ function runSyntheticCase(tc: TestCase): void {
         flowScript.content.includes("$pageSettingsConverged"),
       "user-flow script omitted bounded replication retries",
     );
+    check(
+      tc.name,
+      !flowScript.content.includes("$expand=onAttributeCollection"),
+      "user-flow script used an invalid expand on the onAttributeCollection complex property",
+    );
+    check(
+      tc.name,
+      !flowScript.content.includes("$flowCastUri"),
+      "user-flow script retained the removed flowCastUri variable",
+    );
+  }
+  const googleScript = scripts.find((script) => script.filename === S.google);
+  if (googleScript) {
+    check(
+      tc.name,
+      googleScript.content.includes('"#microsoft.graph.socialIdentityProvider"'),
+      "Google provider script omitted the derived socialIdentityProvider type marker",
+    );
+  }
+  const facebookScript = scripts.find((script) => script.filename === S.facebook);
+  if (facebookScript) {
+    check(
+      tc.name,
+      facebookScript.content.includes('"#microsoft.graph.socialIdentityProvider"'),
+      "Facebook provider script omitted the derived socialIdentityProvider type marker",
+    );
+  }
+  const ssprScript = scripts.find((script) => script.filename === S.sspr);
+  if (ssprScript) {
+    check(
+      tc.name,
+      !ssprScript.content.includes("$expand=onAuthenticationMethodLoadStart"),
+      "SSPR script used an invalid expand on the authentication-method event property",
+    );
   }
 
   // 7. Engine parity: web script set == CLI script set

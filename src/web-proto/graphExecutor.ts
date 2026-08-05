@@ -305,11 +305,15 @@ function buildFlowAttributes(cfg: ApplyConfig) {
   return { attributes, inputs };
 }
 
+export function userFlowReadPath(flowId: string): string {
+  return `/v1.0/identity/authenticationEventsFlows/${flowId}`;
+}
+
 async function reconcileStandardFlowAttributes(flowId: string, cfg: ApplyConfig, token: string): Promise<number> {
   const { attributes: desiredAttributes, inputs: desiredInputs } = buildFlowAttributes(cfg);
   const castPath = `/v1.0/identity/authenticationEventsFlows/${flowId}/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow`;
   const refPath = `${castPath}/onAttributeCollection/microsoft.graph.onAttributeCollectionExternalUsersSelfServiceSignUp/attributes/$ref`;
-  let flow = await graph<any>("GET", `${castPath}?$expand=onAttributeCollection`, token);
+  let flow = await graph<any>("GET", userFlowReadPath(flowId), token);
   let currentIds: string[] = (flow.onAttributeCollection?.attributes || []).map((a: any) => String(a.id));
   let added = 0;
 
@@ -324,7 +328,7 @@ async function reconcileStandardFlowAttributes(flowId: string, cfg: ApplyConfig,
   if (added) {
     flow = await withRetry(
       async () => {
-        const updated = await graph<any>("GET", `${castPath}?$expand=onAttributeCollection`, token);
+        const updated = await graph<any>("GET", userFlowReadPath(flowId), token);
         const ids: string[] = (updated.onAttributeCollection?.attributes || []).map((a: any) => String(a.id));
         if (desiredAttributes.some((attribute) => !ids.includes(attribute.id))) {
           throw new Error("User-flow attributes have not replicated yet.");
@@ -366,7 +370,7 @@ async function reconcileStandardFlowAttributes(flowId: string, cfg: ApplyConfig,
     });
     await withRetry(
       async () => {
-        const verified = await graph<any>("GET", `${castPath}?$expand=onAttributeCollection`, token);
+        const verified = await graph<any>("GET", userFlowReadPath(flowId), token);
         const verifiedInputs: any[] =
           verified.onAttributeCollection?.attributeCollectionPage?.views?.[0]?.inputs || [];
         const converged = desiredInputs.every((desired) => {
@@ -585,13 +589,12 @@ async function addSocialIdp(
   let idp = (existing.value || []).find((p: any) => p.identityProviderType === providerType);
   let created = false;
   if (!idp) {
-    idp = await graph<any>("POST", "/v1.0/identity/identityProviders", token, {
-      "@odata.type": "microsoft.graph.socialIdentityProvider",
-      displayName,
-      identityProviderType: providerType,
-      clientId,
-      clientSecret,
-    });
+    idp = await graph<any>(
+      "POST",
+      "/v1.0/identity/identityProviders",
+      token,
+      socialIdentityProviderPayload(providerType, displayName, clientId, clientSecret),
+    );
     created = true;
   } else {
     await graph("PATCH", `/v1.0/identity/identityProviders/${idp.id}`, token, {
@@ -611,6 +614,21 @@ async function addSocialIdp(
     resource: { id: idp.id, displayName: idp.displayName, boundToFlow: bound },
     message: `${providerType} provider ${created ? "created" : "reused with the supplied credentials refreshed"}${bound ? " and bound to the flow" : ""}. Graph can't validate the client secret — confirm with a live "Continue with ${providerType}" sign-in.`,
     requiresFollowUp: true,
+  };
+}
+
+export function socialIdentityProviderPayload(
+  providerType: string,
+  displayName: string,
+  clientId: string,
+  clientSecret: string,
+): Record<string, string> {
+  return {
+    "@odata.type": "#microsoft.graph.socialIdentityProvider",
+    displayName,
+    identityProviderType: providerType,
+    clientId,
+    clientSecret,
   };
 }
 
@@ -869,8 +887,7 @@ async function enableSspr(token: string, state: ApplyState): Promise<StepResult>
       message: "SSPR requires the Email + Password user flow and application binding to be created or reused in this run.",
     };
   }
-  const castPath = `/v1.0/identity/authenticationEventsFlows/${state.flowId}/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow`;
-  const flow = await graph<any>("GET", `${castPath}?$expand=onAuthenticationMethodLoadStart`, token);
+  const flow = await graph<any>("GET", userFlowReadPath(state.flowId), token);
   if (!flowHasAppBinding(flow, state.appId) || !flowHasEmailPasswordProvider(flow)) {
     return {
       kind,
@@ -932,7 +949,7 @@ async function createCustomAttributes(cfg: ApplyConfig, token: string, state: Ap
     try {
       const flow = await graph<any>(
         "GET",
-        `/v1.0/identity/authenticationEventsFlows/${state.flowId}/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow?$expand=onAttributeCollection`,
+        userFlowReadPath(state.flowId),
         token,
       );
       onFlow = (flow.onAttributeCollection?.attributes || []).map((a: any) => a.id);
@@ -949,7 +966,7 @@ async function createCustomAttributes(cfg: ApplyConfig, token: string, state: Ap
         if (!(err instanceof GraphError) || err.status !== 400) throw err;
         const verify = await graph<any>(
           "GET",
-          `/v1.0/identity/authenticationEventsFlows/${state.flowId}/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow?$expand=onAttributeCollection`,
+          userFlowReadPath(state.flowId),
           token,
         );
         const verifiedIds: string[] = (verify.onAttributeCollection?.attributes || []).map((a: any) => String(a.id));
@@ -960,8 +977,7 @@ async function createCustomAttributes(cfg: ApplyConfig, token: string, state: Ap
 
   let pageSettingsChanged = false;
   if (state.flowId && resolvedIds.length) {
-    const castPath = `/v1.0/identity/authenticationEventsFlows/${state.flowId}/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow`;
-    const flow = await graph<any>("GET", `${castPath}?$expand=onAttributeCollection`, token);
+    const flow = await graph<any>("GET", userFlowReadPath(state.flowId), token);
     const currentInputs: any[] = flow.onAttributeCollection?.attributeCollectionPage?.views?.[0]?.inputs || [];
     const desiredById = new Map<string, CustomAttr>();
     resolvedIds.forEach((id, index) => {

@@ -66,7 +66,7 @@ Write-Host "`n[3/5] Verifying the user flow..." -ForegroundColor Cyan
 #   3. (optional) the "Forgot password?" link is shown via Company Branding
 try {
     $currentFlow = Invoke-MgGraphRequest -Method GET `
-        -Uri "https://graph.microsoft.com/v1.0/identity/authenticationEventsFlows/$flowId/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow?`$expand=onAuthenticationMethodLoadStart"
+        -Uri "https://graph.microsoft.com/v1.0/identity/authenticationEventsFlows/$flowId"
     $flowAppIds = @($currentFlow.conditions.applications.includeApplications | ForEach-Object { $_.appId })
     $flowProviderIds = @($currentFlow.onAuthenticationMethodLoadStart.identityProviders | ForEach-Object { $_.id })
     if ($flowAppIds -notcontains $appContext.appId) {

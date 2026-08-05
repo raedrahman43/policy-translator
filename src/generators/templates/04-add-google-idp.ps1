@@ -138,7 +138,7 @@ try {
         # ─── CREATE GOOGLE IDP ───
         Write-Host "`n[5/7] Creating Google IdP via POST /v1.0/identity/identityProviders..." -ForegroundColor Cyan
         $idpBody = @{
-            "@odata.type"        = "microsoft.graph.socialIdentityProvider"
+            "@odata.type"        = "#microsoft.graph.socialIdentityProvider"
             displayName          = $idpDisplayName
             identityProviderType = "Google"
             clientId             = $googleClientId
