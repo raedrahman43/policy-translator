@@ -91,7 +91,8 @@ try {
     if ($facebookIdp) {
         Write-Host "  Facebook IdP already exists - refreshing the supplied credentials." -ForegroundColor Yellow
         $updateBody = @{
-            displayName  = $idpDisplayName
+            "@odata.type" = "#microsoft.graph.socialIdentityProvider"
+            displayName   = $idpDisplayName
             clientId     = $facebookAppId
             clientSecret = $facebookAppSecret
         } | ConvertTo-Json -Depth 10

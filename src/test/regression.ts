@@ -662,16 +662,16 @@ function runSyntheticCase(tc: TestCase): void {
   if (googleScript) {
     check(
       tc.name,
-      googleScript.content.includes('"#microsoft.graph.socialIdentityProvider"'),
-      "Google provider script omitted the derived socialIdentityProvider type marker",
+      (googleScript.content.match(/#microsoft\.graph\.socialIdentityProvider/g) || []).length >= 2,
+      "Google provider script omitted the derived type marker from create or update",
     );
   }
   const facebookScript = scripts.find((script) => script.filename === S.facebook);
   if (facebookScript) {
     check(
       tc.name,
-      facebookScript.content.includes('"#microsoft.graph.socialIdentityProvider"'),
-      "Facebook provider script omitted the derived socialIdentityProvider type marker",
+      (facebookScript.content.match(/#microsoft\.graph\.socialIdentityProvider/g) || []).length >= 2,
+      "Facebook provider script omitted the derived type marker from create or update",
     );
   }
   const ssprScript = scripts.find((script) => script.filename === S.sspr);
