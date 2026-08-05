@@ -597,11 +597,12 @@ async function addSocialIdp(
     );
     created = true;
   } else {
-    await graph("PATCH", `/v1.0/identity/identityProviders/${idp.id}`, token, {
-      displayName,
-      clientId,
-      clientSecret,
-    });
+    await graph(
+      "PATCH",
+      `/v1.0/identity/identityProviders/${idp.id}`,
+      token,
+      socialIdentityProviderPayload(providerType, displayName, clientId, clientSecret),
+    );
   }
 
   await bindIdpToFlow(state.flowId, idp.id, token);

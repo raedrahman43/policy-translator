@@ -123,7 +123,8 @@ try {
     if ($googleIdp) {
         Write-Host "  Google IdP already exists - refreshing the supplied credentials." -ForegroundColor Yellow
         $updateBody = @{
-            displayName  = $idpDisplayName
+            "@odata.type" = "#microsoft.graph.socialIdentityProvider"
+            displayName   = $idpDisplayName
             clientId     = $googleClientId
             clientSecret = $googleClientSecret
         } | ConvertTo-Json -Depth 10
