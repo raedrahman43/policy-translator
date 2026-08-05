@@ -7,6 +7,8 @@ import {
   flowHasAppBinding,
   flowHasEmailPasswordProvider,
   isReplicationError,
+  socialIdentityProviderPayload,
+  userFlowReadPath,
 } from "../web-proto/graphExecutor";
 import { describeTokenError, fetchBytes, graph, GraphError } from "../web-proto/graphClient";
 import {
@@ -413,6 +415,20 @@ async function testAnalyzeContext(): Promise<void> {
   assert.equal(flowHasEmailPasswordProvider({
     onAuthenticationMethodLoadStart: { identityProviders: [{ id: "EmailOtp-OAUTH" }] },
   }), false);
+  assert.equal(
+    userFlowReadPath("flow-1"),
+    "/v1.0/identity/authenticationEventsFlows/flow-1",
+  );
+  assert.deepEqual(
+    socialIdentityProviderPayload("Google", "Google", "client-id", "client-secret"),
+    {
+      "@odata.type": "#microsoft.graph.socialIdentityProvider",
+      displayName: "Google",
+      identityProviderType: "Google",
+      clientId: "client-id",
+      clientSecret: "client-secret",
+    },
+  );
   assert.equal(caPolicyMatches({
     conditions: {
       applications: { includeApplications: ["api-1"], excludeApplications: [] },
@@ -984,10 +1000,6 @@ async function testCreateAndReuseFlow(): Promise<void> {
       return jsonResponse({
         id: "flow-1",
         conditions: { applications: { includeApplications: [{ appId: "app-client-1" }] } },
-      });
-    }
-    if (method === "GET" && url.includes("externalUsersSelfServiceSignUpEventsFlow?$expand=onAttributeCollection")) {
-      return jsonResponse({
         onAttributeCollection: {
           attributes: cfg.attributes,
           attributeCollectionPage: {

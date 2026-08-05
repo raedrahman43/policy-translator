@@ -106,7 +106,7 @@ try {
         # ─── CREATE FACEBOOK IDP ───
         Write-Host "`n[4/6] Creating Facebook IdP via POST /v1.0/identity/identityProviders..." -ForegroundColor Cyan
         $idpBody = @{
-            "@odata.type"        = "microsoft.graph.socialIdentityProvider"
+            "@odata.type"        = "#microsoft.graph.socialIdentityProvider"
             displayName          = $idpDisplayName
             identityProviderType = "Facebook"
             clientId             = $facebookAppId
